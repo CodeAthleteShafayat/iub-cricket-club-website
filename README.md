@@ -1,6 +1,6 @@
 # IUB Cricket Club Website
 
-Official website for the IUB Cricket Club (Independent University, Bangladesh) — club info, a member signup flow with admin approval, member profiles, a news/posts feed, a community message wall, a photo gallery, and a dynamic homepage slideshow.
+Official website for the IUB Cricket Club (Independent University, Bangladesh): club info, a member signup flow with admin approval, member profiles, a news/posts feed, a community message wall, a photo gallery, and a dynamic homepage slideshow.
 
 ## Tech stack
 
