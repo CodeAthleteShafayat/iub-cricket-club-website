@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Newspaper, Users } from "lucide-react";
+import { Info, LayoutDashboard, Newspaper, Users } from "lucide-react";
 import AdminGuard from "@/components/auth/AdminGuard";
 
 const TABS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/posts", label: "Posts", icon: Newspaper },
+  { href: "/admin/about", label: "About", icon: Info },
 ];
 
 export default function AdminLayout({

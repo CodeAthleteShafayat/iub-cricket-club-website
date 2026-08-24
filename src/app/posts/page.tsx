@@ -20,7 +20,7 @@ export default function PostsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <PageHeader title="News & Announcements" />
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         {loading && <p className="text-sm text-muted">Loading posts...</p>}
         {!loading && posts.length === 0 && (
           <p className="text-sm text-muted">No posts yet.</p>

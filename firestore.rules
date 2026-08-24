@@ -23,20 +23,89 @@ service cloud.firestore {
       return isSignedIn() && myMember().status == 'approved';
     }
 
+    function recruitmentWindowExists() {
+      return exists(/databases/$(database)/documents/config/recruitmentWindow);
+    }
+
+    function recruitmentWindow() {
+      return get(/databases/$(database)/documents/config/recruitmentWindow).data;
+    }
+
+    function recruitmentWindowOpen() {
+      return recruitmentWindowExists()
+          && recruitmentWindow().startAt <= request.time
+          && request.time <= recruitmentWindow().endAt;
+    }
+
+    function approvalStampMatchesWindow() {
+      return recruitmentWindowExists()
+          && request.resource.data.recruitmentSeason == recruitmentWindow().season
+          && request.resource.data.recruitmentYear == recruitmentWindow().year;
+    }
+
+    function isBecomingApproved() {
+      return resource.data.status != 'approved' && request.resource.data.status == 'approved';
+    }
+
     match /members/{uid} {
-      allow read: if resource.data.status == 'approved' || isOwner(uid) || isAdmin();
+      // Member docs hold personal data (phone, student ID, date of birth, blood
+      // group), so they are readable only by the member themselves and admins.
+      // Nothing public renders other people's member docs — community messages
+      // carry their own denormalized authorName/authorPhotoURL.
+      allow read: if isOwner(uid) || isAdmin();
 
       allow create: if isOwner(uid)
                     && request.resource.data.uid == uid
                     && request.resource.data.status == 'pending'
-                    && request.resource.data.isAdmin == false;
+                    && request.resource.data.isAdmin == false
+                    && request.resource.data.photoURL is string
+                    && request.resource.data.photoURL.size() > 0
+                    && request.resource.data.dateOfBirth is string
+                    && request.resource.data.dateOfBirth.size() > 0
+                    && request.resource.data.bloodGroup in
+                       ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                    && request.resource.data.playingExperience in
+                       ['none', 'school', 'college', 'university', 'club', 'professional']
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.email.lower().matches('^[a-z0-9._%+-]+@iub\\.edu\\.bd$');
 
-      allow update: if isAdmin()
+      // A member editing their own profile may never change their status, admin
+      // flag, recruitment cohort, identity, or the review audit trail — those are
+      // admin/server-owned. Legacy docs predate the recruitment fields, so those
+      // two are compared with .get(..., null) rather than direct access.
+      allow update: if (isAdmin()
+                         && (!isBecomingApproved()
+                             || (recruitmentWindowOpen() && approvalStampMatchesWindow())))
                     || (isOwner(uid)
                         && request.resource.data.status == resource.data.status
-                        && request.resource.data.isAdmin == resource.data.isAdmin);
+                        && request.resource.data.isAdmin == resource.data.isAdmin
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.email == resource.data.email
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.reviewedBy == resource.data.reviewedBy
+                        && request.resource.data.reviewedAt == resource.data.reviewedAt
+                        && request.resource.data.get('recruitmentSeason', null) == resource.data.get('recruitmentSeason', null)
+                        && request.resource.data.get('recruitmentYear', null) == resource.data.get('recruitmentYear', null));
 
       allow delete: if isAdmin();
+    }
+
+    match /config/recruitmentWindow {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+                            && request.resource.data.season in ['Spring', 'Summer', 'Autumn']
+                            && request.resource.data.year is string
+                            && request.resource.data.startAt is timestamp
+                            && request.resource.data.endAt is timestamp
+                            && request.resource.data.startAt < request.resource.data.endAt
+                            && request.resource.data.setBy == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /content/about {
+      allow read: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     match /posts/{postId} {
@@ -46,8 +115,16 @@ service cloud.firestore {
 
     match /communityMessages/{messageId} {
       allow read: if isApprovedMember();
+      // authorName is pinned to the sender's real member name so nobody can post
+      // under someone else's name; text is capped and createdAt must be the
+      // server's clock so the feed can't be forged or spammed with huge payloads.
       allow create: if isApprovedMember()
-                    && request.resource.data.authorUid == request.auth.uid;
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.authorName == myMember().name
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.createdAt == request.time;
       allow update, delete: if isAdmin();
     }
 

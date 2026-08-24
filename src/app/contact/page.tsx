@@ -1,4 +1,4 @@
-import { Mail, MapPin } from "lucide-react";
+import { Mail, MapPin, MessageCircle } from "lucide-react";
 import { CLUB_NAME } from "@/lib/constants";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -10,15 +10,34 @@ export default function ContactPage() {
         description={`Have questions about ${CLUB_NAME}? Reach out through any of the channels below.`}
       />
       <div className="flex flex-col gap-4">
-        <div className="card flex items-start gap-4 p-5">
+        <a
+          href="mailto:cricket.club@iub.edu.bd"
+          className="card flex items-start gap-4 p-5 transition hover:border-navy/30"
+        >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy/5 text-navy">
             <Mail size={18} />
           </span>
           <div>
             <p className="font-medium text-navy">Email</p>
-            <p className="text-sm text-muted">iubcricketclub@iub.edu.bd</p>
+            <p className="text-sm text-muted">cricket.club@iub.edu.bd</p>
           </div>
-        </div>
+        </a>
+        <a
+          href="https://m.me/iubcricketclub"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="card flex items-start gap-4 p-5 transition hover:border-navy/30"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy/5 text-navy">
+            <MessageCircle size={18} />
+          </span>
+          <div>
+            <p className="font-medium text-navy">Messenger</p>
+            <p className="text-sm text-muted">
+              Chat with us on the IUB Cricket Club Facebook page
+            </p>
+          </div>
+        </a>
         <div className="card flex items-start gap-4 p-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy/5 text-navy">
             <MapPin size={18} />
@@ -26,7 +45,7 @@ export default function ContactPage() {
           <div>
             <p className="font-medium text-navy">Campus</p>
             <p className="text-sm text-muted">
-              Independent University, Bangladesh — Bashundhara Campus, Dhaka
+              Independent University, Bangladesh, Bashundhara Campus, Dhaka
             </p>
           </div>
         </div>

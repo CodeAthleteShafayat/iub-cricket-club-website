@@ -2,16 +2,42 @@
 
 import { useEffect, useState } from "react";
 import { Clock, ShieldCheck, Users } from "lucide-react";
-import { subscribeToAllMembers } from "@/lib/services/members";
-import type { Member } from "@/lib/types";
+import { FirebaseError } from "firebase/app";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { approveMember, rejectMember, subscribeToAllMembers } from "@/lib/services/members";
+import { isWindowOpen, subscribeToRecruitmentWindow } from "@/lib/services/recruitment";
+import type { Member, RecruitmentWindow } from "@/lib/types";
+import MemberReviewCard from "@/components/admin/MemberReviewCard";
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
+  const [recruitmentWindow, setRecruitmentWindow] = useState<RecruitmentWindow | null>(null);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   useEffect(() => subscribeToAllMembers(setMembers), []);
+  useEffect(() => subscribeToRecruitmentWindow(setRecruitmentWindow), []);
 
-  const pendingCount = members.filter((m) => m.status === "pending").length;
+  const windowOpen = isWindowOpen(recruitmentWindow);
+  const pending = members.filter((m) => m.status === "pending");
+  const pendingCount = pending.length;
   const approvedCount = members.filter((m) => m.status === "approved").length;
+
+  async function handleApprove(uid: string) {
+    if (!user) return;
+    setApproveError(null);
+    try {
+      await approveMember(uid, user.uid);
+    } catch (error) {
+      if (error instanceof FirebaseError && error.code === "permission-denied") {
+        setApproveError("Recruitment window is closed");
+      } else if (error instanceof Error) {
+        setApproveError(error.message);
+      } else {
+        setApproveError("Could not approve this applicant. Please try again.");
+      }
+    }
+  }
 
   return (
     <div>
@@ -31,10 +57,37 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           icon={<Users size={18} />}
-          label="Total members"
+          label="Total applications"
           value={members.length}
         />
       </div>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-navy">
+          Pending Applications ({pending.length})
+        </h2>
+        {!windowOpen && (
+          <p className="mt-2 text-sm text-muted">
+            Recruitment window is closed &mdash; open one on the Members page to approve
+            applicants.
+          </p>
+        )}
+        {approveError && <p className="mt-2 text-sm text-red-600">{approveError}</p>}
+        <div className="mt-4 flex flex-col gap-3">
+          {pending.length === 0 && (
+            <p className="text-sm text-muted">No pending applications.</p>
+          )}
+          {pending.map((m) => (
+            <MemberReviewCard
+              key={m.uid}
+              member={m}
+              windowOpen={windowOpen}
+              onApprove={() => handleApprove(m.uid)}
+              onReject={() => user && rejectMember(m.uid, user.uid)}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

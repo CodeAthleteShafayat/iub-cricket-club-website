@@ -18,6 +18,7 @@ export default function GalleryPage() {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,9 +32,12 @@ export default function GalleryPage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const url = await uploadImage(file, "gallery");
       await addGalleryImage(url, user.uid);
+    } catch {
+      setUploadError("Could not upload that photo. Please try again.");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -66,6 +70,8 @@ export default function GalleryPage() {
         )}
       </div>
 
+      {uploadError && <p className="mb-4 text-sm text-red-600">{uploadError}</p>}
+
       {loading && <p className="text-sm text-muted">Loading photos...</p>}
 
       {!loading && images.length === 0 && (
@@ -92,7 +98,7 @@ export default function GalleryPage() {
               </span>
             )}
             {member?.isAdmin && (
-              <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
+              <div className="absolute right-2 top-2 flex gap-1.5">
                 <button
                   onClick={() =>
                     setGalleryImageFeatured(img.id, !img.featuredOnHome)
@@ -109,7 +115,11 @@ export default function GalleryPage() {
                   <Star size={14} fill={img.featuredOnHome ? "currentColor" : "none"} />
                 </button>
                 <button
-                  onClick={() => deleteGalleryImage(img.id)}
+                  onClick={() => {
+                    if (confirm("Delete this photo? This cannot be undone.")) {
+                      deleteGalleryImage(img.id);
+                    }
+                  }}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-dark/80 text-white"
                   aria-label="Delete photo"
                 >

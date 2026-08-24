@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f1e3d;
+  --background: #faf7f0;
+  --foreground: #0e1b34;
 
   --navy: #0b1e3d;
-  --navy-light: #16305c;
-  --navy-dark: #071427;
+  --navy-light: #1c3563;
+  --navy-dark: #060f1f;
   --gold: #c99a2e;
-  --gold-light: #e0bc63;
-  --gold-dark: #a67f22;
+  --gold-light: #e6c369;
+  --gold-dark: #8f6b1c;
 
-  --muted: #5b6b85;
-  --surface: #f7f8fa;
-  --border: #e4e7ec;
+  --muted: #6b6558;
+  --surface: #f2ecdd;
+  --border: #e6ded0;
 }
 
 @theme inline {
@@ -28,14 +28,80 @@
   --color-muted: var(--muted);
   --color-surface: var(--surface);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --font-heading: var(--font-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  position: relative;
+}
+
+/* Fine paper grain — ties every surface (ivory bg, navy hero, cards) to one
+   tactile "clubhouse stationery" material instead of flat digital color. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Cricket-ball seam: a stitched double line used as the club's recurring
+   decorative motif in place of generic dividers/eyebrow bars. */
+.seam {
+  position: relative;
+  display: block;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold) 0,
+    var(--gold) 6px,
+    transparent 6px,
+    transparent 11px
+  );
+}
+.seam::before,
+.seam::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold-dark) 0,
+    var(--gold-dark) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+  opacity: 0.6;
+}
+.seam::before {
+  top: -3px;
+}
+.seam::after {
+  bottom: -3px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  opacity: 0;
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @layer components {
@@ -44,22 +110,36 @@ body {
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-navy-light disabled:opacity-50 disabled:pointer-events-none;
+    @apply relative inline-flex items-center justify-center gap-2 rounded-md bg-navy px-5 py-2.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(6,15,31,0.3)] transition hover:bg-navy-light active:translate-y-px disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-navy-dark shadow-sm transition hover:bg-gold-light disabled:opacity-50 disabled:pointer-events-none;
+    @apply relative inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-b from-gold-light to-gold px-5 py-2.5 text-sm font-semibold text-navy-dark shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(143,107,28,0.35)] transition hover:from-gold hover:to-gold-dark hover:text-white active:translate-y-px disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-navy transition hover:border-navy/30 hover:bg-surface disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-border bg-white px-5 py-2.5 text-sm font-semibold text-navy transition hover:border-navy/30 hover:bg-surface active:translate-y-px disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .card {
-    @apply rounded-xl border border-border bg-white shadow-[0_1px_2px_rgba(15,30,61,0.04)];
+    @apply relative overflow-hidden rounded-lg border border-border bg-white shadow-[0_1px_2px_rgba(15,30,61,0.05)] transition-shadow;
+  }
+
+  .card::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-[3px] origin-left scale-x-0 bg-gradient-to-r from-gold via-gold-light to-gold transition-transform duration-300;
+  }
+
+  .card:hover::before {
+    @apply scale-x-100;
   }
 
   .section-eyebrow {
-    @apply inline-block h-1 w-10 rounded-full bg-gold;
+    @apply inline-flex items-center gap-2 font-heading text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gold-dark;
+  }
+
+  .section-eyebrow::before {
+    content: "";
+    @apply h-px w-6 bg-gold;
   }
 }

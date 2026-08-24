@@ -24,8 +24,8 @@ export default function PostDetail({ postId }: { postId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <span className="section-eyebrow mb-4 block" />
-      <h1 className="text-2xl font-bold tracking-tight text-navy sm:text-3xl">
+      <span className="section-eyebrow mb-4">News</span>
+      <h1 className="font-heading text-3xl font-semibold tracking-tight text-navy sm:text-4xl">
         {post.title}
       </h1>
       <p className="mt-2 text-sm text-muted">By {post.authorName}</p>

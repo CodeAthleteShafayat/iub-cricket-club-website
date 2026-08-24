@@ -36,6 +36,7 @@ export default function MessageComposer() {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Write a message..."
+        maxLength={2000}
         className="input flex-1"
       />
       <button
