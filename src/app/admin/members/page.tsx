@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { FirebaseError } from "firebase/app";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
   approveMember,
+  deleteMember,
   rejectMember,
   subscribeToAllMembers,
 } from "@/lib/services/members";
@@ -24,6 +25,7 @@ export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [recruitmentWindow, setRecruitmentWindow] = useState<RecruitmentWindow | null>(null);
   const [approveError, setApproveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [seasonFilter, setSeasonFilter] = useState<SeasonFilter>("all");
   const [yearFilter, setYearFilter] = useState<string>("all");
 
@@ -49,9 +51,20 @@ export default function AdminMembersPage() {
     return true;
   });
 
+  // Exports exactly the rows the filters are currently showing, and names the
+  // file after that selection so separate cohort exports don't overwrite each
+  // other in the downloads folder.
   function handleExport() {
     const date = new Date().toISOString().slice(0, 10);
-    downloadCsv(`iub-cricket-club-members-${date}.csv`, membersToCsv(members));
+    const scope =
+      seasonFilter === "legacy"
+        ? "no-cohort"
+        : [seasonFilter, yearFilter].filter((v) => v !== "all").join("-");
+    const label = scope ? `${scope}-` : "";
+    downloadCsv(
+      `iub-cricket-club-members-${label}${date}.csv`,
+      membersToCsv(filteredOthers)
+    );
   }
 
   async function handleApprove(uid: string) {
@@ -70,20 +83,27 @@ export default function AdminMembersPage() {
     }
   }
 
+  async function handleDelete(m: Member) {
+    if (
+      !confirm(
+        `Delete ${m.name}'s member record? This cannot be undone and does not remove their login account.`
+      )
+    ) {
+      return;
+    }
+    setDeleteError(null);
+    try {
+      await deleteMember(m.uid);
+    } catch {
+      setDeleteError("Could not delete this member. Please try again.");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">
-          {members.length} total application{members.length === 1 ? "" : "s"}
-        </p>
-        <button
-          onClick={handleExport}
-          disabled={members.length === 0}
-          className="btn-outline !px-4 !py-2 text-sm"
-        >
-          <Download size={16} /> Export CSV
-        </button>
-      </div>
+      <p className="text-sm text-muted">
+        {members.length} total application{members.length === 1 ? "" : "s"}
+      </p>
 
       <RecruitmentWindowCard />
 
@@ -140,12 +160,24 @@ export default function AdminMembersPage() {
                 </option>
               ))}
             </select>
+            <button
+              onClick={handleExport}
+              disabled={filteredOthers.length === 0}
+              title="Downloads exactly the members listed below"
+              className="btn-outline !px-4 !py-2 text-sm"
+            >
+              <Download size={16} /> Export CSV ({filteredOthers.length})
+            </button>
           </div>
         </div>
+        {deleteError && <p className="mt-2 text-sm text-red-600">{deleteError}</p>}
         <div className="mt-4 flex flex-col gap-3">
-          {filteredOthers.map((m) => (
-            <div key={m.uid} className="card flex items-center justify-between p-4 text-sm">
-              <div>
+          {filteredOthers.map((m, index) => (
+            <div key={m.uid} className="card flex items-center gap-3 p-4 text-sm">
+              <span className="w-6 shrink-0 text-right font-medium tabular-nums text-muted">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
                 <div className="font-medium text-navy">
                   {m.name}
                   {m.isAdmin && (
@@ -164,6 +196,12 @@ export default function AdminMembersPage() {
                   </div>
                 )}
               </div>
+              <button
+                onClick={() => handleDelete(m)}
+                className="flex shrink-0 items-center gap-1 font-medium text-red-600 hover:underline"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
             </div>
           ))}
         </div>

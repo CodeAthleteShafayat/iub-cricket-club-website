@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -110,4 +111,8 @@ export async function setMemberAdmin(uid: string, isAdmin: boolean) {
     isAdmin,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteMember(uid: string) {
+  await deleteDoc(doc(db, "members", uid));
 }

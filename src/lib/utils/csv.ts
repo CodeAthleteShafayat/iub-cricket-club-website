@@ -1,8 +1,9 @@
 import type { Member } from "@/lib/types";
-import { formatBst, toJsDate } from "@/lib/utils/bst";
+import { formatBstSortable } from "@/lib/utils/bst";
 import { PLAYING_EXPERIENCE_OPTIONS } from "@/lib/constants";
 
-const CSV_COLUMNS: { header: string; get: (m: Member) => string }[] = [
+const CSV_COLUMNS: { header: string; get: (m: Member, index: number) => string }[] = [
+  { header: "#", get: (_m, index) => String(index + 1) },
   { header: "Name", get: (m) => m.name },
   { header: "Student ID", get: (m) => m.studentId },
   { header: "Department", get: (m) => m.department },
@@ -27,15 +28,10 @@ const CSV_COLUMNS: { header: string; get: (m: Member) => string }[] = [
   { header: "Recruitment Year", get: (m) => m.recruitmentYear ?? "" },
   {
     header: "Became Member At (BST)",
-    get: (m) => (m.status === "approved" ? formatBst(m.reviewedAt) : ""),
+    get: (m) => (m.status === "approved" ? formatBstSortable(m.reviewedAt) : ""),
   },
-  { header: "Applied At", get: (m) => formatTimestamp(m.createdAt) },
+  { header: "Applied At (BST)", get: (m) => formatBstSortable(m.createdAt) },
 ];
-
-function formatTimestamp(value: unknown): string {
-  const date = toJsDate(value);
-  return date ? date.toISOString() : "";
-}
 
 function escapeCsvField(value: string): string {
   if (/[",\n]/.test(value)) {
@@ -46,8 +42,8 @@ function escapeCsvField(value: string): string {
 
 export function membersToCsv(members: Member[]): string {
   const header = CSV_COLUMNS.map((c) => escapeCsvField(c.header)).join(",");
-  const rows = members.map((m) =>
-    CSV_COLUMNS.map((c) => escapeCsvField(c.get(m))).join(",")
+  const rows = members.map((m, index) =>
+    CSV_COLUMNS.map((c) => escapeCsvField(c.get(m, index))).join(",")
   );
   return [header, ...rows].join("\r\n");
 }

@@ -43,6 +43,30 @@ export function formatBst(value: unknown): string {
   return `${get("day")}/${get("month")}/${get("year")}, ${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
+// Same instant, same timezone, but as YYYY-MM-DD HH:MM:SS. Used for CSV export:
+// Excel and Google Sheets parse this shape as a real date (so the column sorts
+// chronologically and can be reformatted), whereas DD/MM/YYYY imports as text
+// and sorts alphabetically, putting 01/12 before 02/01.
+export function formatBstSortable(value: unknown): string {
+  const date = toJsDate(value);
+  if (!date) return "";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BST_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
 // Interprets an <input type="datetime-local"> value ("YYYY-MM-DDTHH:mm" or
 // "...:ss") as Bangladesh wall-clock time, regardless of the admin's own
 // machine/browser timezone. Do not use `new Date(value)` directly for this.
