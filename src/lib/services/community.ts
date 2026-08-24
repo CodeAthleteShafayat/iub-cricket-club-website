@@ -24,17 +24,21 @@ export async function sendMessage(input: MessageInput) {
   });
 }
 
+// Ordered descending so the limit keeps the NEWEST messages (ascending would
+// pin the window to the oldest 200 and new messages would stop showing up once
+// the collection outgrew it), then reversed so the UI still renders oldest-first.
 export function subscribeToMessages(
   callback: (messages: CommunityMessage[]) => void
 ) {
   const q = query(
     collection(db, "communityMessages"),
-    orderBy("createdAt", "asc"),
+    orderBy("createdAt", "desc"),
     limit(200)
   );
   return onSnapshot(q, (snap) => {
-    callback(
-      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommunityMessage)
+    const messages = snap.docs.map(
+      (d) => ({ id: d.id, ...d.data() }) as CommunityMessage
     );
+    callback(messages.reverse());
   });
 }

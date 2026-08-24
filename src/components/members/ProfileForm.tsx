@@ -1,21 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { updateOwnProfile } from "@/lib/services/members";
 import { transformImage, uploadImage } from "@/lib/services/cloudinary";
-import { ROLE_OPTIONS, DEPARTMENTS } from "@/lib/constants";
+import {
+  ROLE_OPTIONS,
+  SEMESTER_OPTIONS,
+  BLOOD_GROUP_OPTIONS,
+  PLAYING_EXPERIENCE_OPTIONS,
+} from "@/lib/constants";
+import DepartmentAutocomplete from "@/components/members/DepartmentAutocomplete";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
   studentId: z.string().min(3, "Student ID is required"),
   department: z.string().min(1, "Select a department"),
-  batch: z.string().min(1, "Batch is required"),
+  semester: z.enum(["Spring", "Summer", "Autumn"], { message: "Select a semester" }),
+  year: z.string().regex(/^\d{4}$/, "Enter a 4-digit year"),
   role: z.enum(["batsman", "bowler", "all-rounder", "wicketkeeper"]),
   phone: z.string().min(6, "Phone number is required"),
+  dateOfBirth: z
+    .string()
+    .min(1, "Date of birth is required")
+    .refine((v) => new Date(v) <= new Date(), "Date of birth can't be in the future"),
+  bloodGroup: z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], {
+    message: "Select your blood group",
+  }),
+  playingExperience: z.enum(
+    ["none", "school", "college", "university", "club", "professional"],
+    { message: "Select your playing experience" }
+  ),
+  cricketingAchievements: z
+    .string()
+    .max(500, "Keep it under 500 characters")
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -30,6 +52,7 @@ export default function ProfileForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({
@@ -39,9 +62,14 @@ export default function ProfileForm() {
           name: member.name,
           studentId: member.studentId,
           department: member.department,
-          batch: member.batch,
+          semester: member.semester,
+          year: member.year,
           role: member.role,
           phone: member.phone,
+          dateOfBirth: member.dateOfBirth ?? "",
+          bloodGroup: member.bloodGroup,
+          playingExperience: member.playingExperience,
+          cricketingAchievements: member.cricketingAchievements ?? "",
         }
       : undefined,
   });
@@ -57,7 +85,11 @@ export default function ProfileForm() {
       if (photoFile) {
         photoURL = await uploadImage(photoFile, "profile-photos");
       }
-      await updateOwnProfile(user!.uid, { ...values, photoURL });
+      await updateOwnProfile(user!.uid, {
+        ...values,
+        cricketingAchievements: values.cricketingAchievements ?? "",
+        photoURL,
+      });
       setSaved(true);
       setPhotoFile(null);
     } catch {
@@ -105,19 +137,29 @@ export default function ProfileForm() {
         <input className="input" {...register("studentId")} />
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Department" error={errors.department?.message}>
-          <select className="input" {...register("department")}>
-            {DEPARTMENTS.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
+          <Controller
+            control={control}
+            name="department"
+            render={({ field }) => (
+              <DepartmentAutocomplete value={field.value} onChange={field.onChange} />
+            )}
+          />
+        </Field>
+
+        <Field label="Semester" error={errors.semester?.message}>
+          <select className="input" {...register("semester")}>
+            {SEMESTER_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
               </option>
             ))}
           </select>
         </Field>
 
-        <Field label="Batch" error={errors.batch?.message}>
-          <input className="input" {...register("batch")} />
+        <Field label="Year" error={errors.year?.message}>
+          <input className="input" placeholder="e.g. 2026" {...register("year")} />
         </Field>
       </div>
 
@@ -135,9 +177,51 @@ export default function ProfileForm() {
         <input className="input" {...register("phone")} />
       </Field>
 
-      <div className="text-sm text-muted">
-        Email: {member.email} (not editable)
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Date of birth" error={errors.dateOfBirth?.message}>
+          <input className="input" type="date" {...register("dateOfBirth")} />
+        </Field>
+
+        <Field label="Blood group" error={errors.bloodGroup?.message}>
+          <select className="input" {...register("bloodGroup")} defaultValue="">
+            <option value="" disabled>
+              Select
+            </option>
+            {BLOOD_GROUP_OPTIONS.map((bg) => (
+              <option key={bg} value={bg}>
+                {bg}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
+
+      <Field label="Playing experience" error={errors.playingExperience?.message}>
+        <select className="input" {...register("playingExperience")} defaultValue="">
+          <option value="" disabled>
+            Select
+          </option>
+          {PLAYING_EXPERIENCE_OPTIONS.map((exp) => (
+            <option key={exp.value} value={exp.value}>
+              {exp.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field
+        label="Cricketing achievements (optional)"
+        error={errors.cricketingAchievements?.message}
+      >
+        <textarea
+          className="input"
+          rows={3}
+          placeholder="e.g. district-level trophy, school captain, notable performances"
+          {...register("cricketingAchievements")}
+        />
+      </Field>
+
+      <div className="text-sm text-muted">Email: {member.email}</div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-700">Profile updated.</p>}

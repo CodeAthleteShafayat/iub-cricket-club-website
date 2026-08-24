@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -27,14 +28,14 @@ export default function LoginForm() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
-    if (!loading && user) router.replace("/profile");
+    if (!loading && user) router.replace("/");
   }, [loading, user, router]);
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push("/profile");
+      router.push("/");
     } catch {
       setSubmitError("Invalid email or password.");
     }
@@ -59,6 +60,13 @@ export default function LoginForm() {
           </span>
         )}
       </label>
+
+      <Link
+        href="/forgot-password"
+        className="-mt-2 self-end text-xs font-medium text-navy underline"
+      >
+        Forgot password?
+      </Link>
 
       {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 

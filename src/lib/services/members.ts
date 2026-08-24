@@ -7,39 +7,63 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Member, MemberStatus, PlayerRole } from "@/lib/types";
+import type {
+  BloodGroup,
+  Member,
+  PlayerRole,
+  PlayingExperience,
+  Semester,
+} from "@/lib/types";
+import { getRecruitmentWindow, isWindowOpen } from "@/lib/services/recruitment";
 
 export interface SignupInput {
   uid: string;
   name: string;
   studentId: string;
   department: string;
-  batch: string;
+  semester: Semester;
+  year: string;
   role: PlayerRole;
   phone: string;
   email: string;
+  photoURL: string;
+  dateOfBirth: string;
+  bloodGroup: BloodGroup;
+  playingExperience: PlayingExperience;
+  cricketingAchievements: string;
 }
 
 export async function createMemberDoc(input: SignupInput) {
   await setDoc(doc(db, "members", input.uid), {
     ...input,
-    photoURL: null,
     status: "pending",
     isAdmin: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     reviewedBy: null,
     reviewedAt: null,
+    recruitmentSeason: null,
+    recruitmentYear: null,
   });
 }
 
 export type OwnProfileEdits = Partial<
   Pick<
     Member,
-    "name" | "studentId" | "department" | "batch" | "role" | "phone" | "photoURL"
+    | "name"
+    | "studentId"
+    | "department"
+    | "semester"
+    | "year"
+    | "role"
+    | "phone"
+    | "photoURL"
+    | "dateOfBirth"
+    | "bloodGroup"
+    | "playingExperience"
+    | "cricketingAchievements"
   >
 >;
 
@@ -47,20 +71,6 @@ export async function updateOwnProfile(uid: string, edits: OwnProfileEdits) {
   await updateDoc(doc(db, "members", uid), {
     ...edits,
     updatedAt: serverTimestamp(),
-  });
-}
-
-export function subscribeToMembersByStatus(
-  status: MemberStatus,
-  callback: (members: Member[]) => void
-) {
-  const q = query(
-    collection(db, "members"),
-    where("status", "==", status),
-    orderBy("createdAt", "asc")
-  );
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => d.data() as Member));
   });
 }
 
@@ -72,8 +82,14 @@ export function subscribeToAllMembers(callback: (members: Member[]) => void) {
 }
 
 export async function approveMember(uid: string, adminUid: string) {
+  const window = await getRecruitmentWindow();
+  if (!isWindowOpen(window)) {
+    throw new Error("Recruitment window is closed");
+  }
   await updateDoc(doc(db, "members", uid), {
     status: "approved",
+    recruitmentSeason: window!.season,
+    recruitmentYear: window!.year,
     reviewedBy: adminUid,
     reviewedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

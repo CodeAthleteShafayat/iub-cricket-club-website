@@ -1,18 +1,20 @@
 export default function PageHeader({
   title,
   description,
+  eyebrow = "IUB Cricket Club",
 }: {
   title: string;
   description?: string;
+  eyebrow?: string;
 }) {
   return (
-    <div className="mb-10 flex flex-col gap-3">
-      <span className="section-eyebrow" />
-      <h1 className="text-3xl font-bold tracking-tight text-navy sm:text-4xl">
+    <div className="animate-fade-up mb-12 flex flex-col gap-4">
+      <span className="section-eyebrow">{eyebrow}</span>
+      <h1 className="font-heading text-4xl font-semibold tracking-tight text-navy sm:text-5xl">
         {title}
       </h1>
       {description && (
-        <p className="max-w-2xl text-sm text-muted sm:text-base">
+        <p className="max-w-2xl text-base leading-relaxed text-muted">
           {description}
         </p>
       )}

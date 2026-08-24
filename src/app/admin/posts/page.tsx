@@ -42,7 +42,11 @@ export default function AdminPostsPage() {
                 <Pencil size={14} /> Edit
               </Link>
               <button
-                onClick={() => deletePost(post.id)}
+                onClick={() => {
+                  if (confirm(`Delete "${post.title}"? This cannot be undone.`)) {
+                    deletePost(post.id);
+                  }
+                }}
                 className="flex items-center gap-1 font-medium text-red-600 hover:underline"
               >
                 <Trash2 size={14} /> Delete
