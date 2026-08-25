@@ -82,7 +82,32 @@ export interface CommunityMessage {
 export interface GalleryImage {
   id: string;
   url: string;
+  /** Caption shown under the photo. Empty string when untitled; absent entirely on images uploaded before captions existed. */
+  title: string;
   uploadedBy: string;
   featuredOnHome: boolean;
   createdAt: number;
+}
+
+export interface EmailCampaignRecipient {
+  uid: string;
+  email: string;
+  name: string;
+  sentAt: number | null;
+}
+
+/** Bulk announcement email queue, capped at 100 sends/day (shared with the
+ * per-approval welcome email) and drained by the daily cron batch job when a
+ * campaign has more recipients than that. Singleton per send, at
+ * emailCampaigns/{id}. */
+export interface EmailCampaign {
+  id: string;
+  subject: string;
+  bodyText: string;
+  createdBy: string;
+  createdAt: number;
+  status: "sending" | "completed";
+  totalRecipients: number;
+  sentCount: number;
+  recipients: EmailCampaignRecipient[];
 }

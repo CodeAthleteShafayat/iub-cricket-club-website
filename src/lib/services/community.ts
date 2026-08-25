@@ -1,6 +1,8 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   limit,
   onSnapshot,
   orderBy,
@@ -22,6 +24,10 @@ export async function sendMessage(input: MessageInput) {
     ...input,
     createdAt: serverTimestamp(),
   });
+}
+
+export async function deleteMessage(id: string) {
+  await deleteDoc(doc(db, "communityMessages", id));
 }
 
 // Ordered descending so the limit keeps the NEWEST messages (ascending would

@@ -22,7 +22,7 @@ export default function FeaturedPhotos({
       variant={variant}
       images={images.map((img) => ({
         src: transformImage(img.url, { width: 1600, height: 900 }),
-        alt: "",
+        alt: img.title ?? "",
       }))}
     />
   );

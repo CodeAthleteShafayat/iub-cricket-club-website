@@ -16,6 +16,7 @@ import { SEMESTER_OPTIONS } from "@/lib/constants";
 import type { Member, RecruitmentWindow, Semester } from "@/lib/types";
 import MemberReviewCard from "@/components/admin/MemberReviewCard";
 import RecruitmentWindowCard from "@/components/admin/RecruitmentWindowCard";
+import ComposeEmailPanel from "@/components/admin/ComposeEmailPanel";
 import { downloadCsv, membersToCsv } from "@/lib/utils/csv";
 
 type SeasonFilter = "all" | "legacy" | Semester;
@@ -35,6 +36,7 @@ export default function AdminMembersPage() {
   const windowOpen = isWindowOpen(recruitmentWindow);
   const pending = members.filter((m) => m.status === "pending");
   const others = members.filter((m) => m.status !== "pending");
+  const approvedMembers = members.filter((m) => m.status === "approved");
 
   const years = useMemo(
     () =>
@@ -106,6 +108,8 @@ export default function AdminMembersPage() {
       </p>
 
       <RecruitmentWindowCard />
+
+      <ComposeEmailPanel approvedMembers={approvedMembers} />
 
       <section>
         <h2 className="text-lg font-semibold text-navy">

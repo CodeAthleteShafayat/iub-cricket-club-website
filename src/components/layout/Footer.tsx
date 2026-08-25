@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CLUB_NAME } from "@/lib/constants";
+import { CLUB_NAME, SOCIAL_LINKS } from "@/lib/constants";
 
 const LINKS = [
   { href: "/about", label: "About" },
@@ -42,7 +42,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-3">
             <a
-              href="https://www.facebook.com/iubcricketclub"
+              href={SOCIAL_LINKS.facebook}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="IUB Cricket Club on Facebook"
@@ -58,7 +58,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="https://www.instagram.com/iub_cricket_club"
+              href={SOCIAL_LINKS.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="IUB Cricket Club on Instagram"

@@ -13,13 +13,22 @@ import {
 import { db } from "@/lib/firebase/client";
 import type { GalleryImage } from "@/lib/types";
 
-export async function addGalleryImage(url: string, uploadedBy: string) {
+export async function addGalleryImage(
+  url: string,
+  uploadedBy: string,
+  title: string
+) {
   await addDoc(collection(db, "galleryImages"), {
     url,
+    title: title.trim(),
     uploadedBy,
     featuredOnHome: false,
     createdAt: serverTimestamp(),
   });
+}
+
+export async function setGalleryImageTitle(id: string, title: string) {
+  await updateDoc(doc(db, "galleryImages", id), { title: title.trim() });
 }
 
 export function subscribeToGalleryImages(

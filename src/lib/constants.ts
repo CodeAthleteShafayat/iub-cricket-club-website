@@ -96,3 +96,24 @@ export const PLAYING_EXPERIENCE_OPTIONS: { value: PlayingExperience; label: stri
 export const CLUB_NAME = "IUB Cricket Club";
 
 export const IUB_EMAIL_DOMAIN = "iub.edu.bd";
+
+// Single source of truth: rendered in the site Footer and in outgoing email
+// templates, so a changed handle only has to be updated in one place.
+export const SOCIAL_LINKS = {
+  facebook: "https://www.facebook.com/iubcricketclub",
+  instagram: "https://www.instagram.com/iub_cricket_club",
+} as const;
+
+// --- Email sending safety rails ---------------------------------------
+// Not a Gmail rule we know to be true — a self-imposed cap so a mistake
+// (or a very large cohort) can't burn through the mailbox's real quota and
+// get it temporarily locked for sending. Raise it via
+// NEXT_PUBLIC_DAILY_EMAIL_LIMIT once the real ceiling is known; anything
+// over the cap isn't dropped, it rolls to the next day's batch.
+export const DAILY_EMAIL_LIMIT =
+  Number(process.env.NEXT_PUBLIC_DAILY_EMAIL_LIMIT) || 400;
+
+// Separate from the daily cap: one serverless invocation has a wall-clock
+// timeout (see `maxDuration` on the email routes), so a single run only
+// ever drains this many. The rest waits for the next cron run.
+export const MAX_EMAILS_PER_RUN = 150;

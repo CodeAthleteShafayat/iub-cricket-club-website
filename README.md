@@ -104,14 +104,31 @@ firestore.indexes.json   Composite indexes required by the app's queries
 
 Route guards (`AuthGuard`, `ApprovedGuard`, `AdminGuard`) are UX convenience only — they redirect signed-out/unapproved/non-admin users, but the actual access control is enforced by `firestore.rules`. Any change to permissions must be made (and redeployed) there.
 
-## Not yet built (planned, deferred)
+## Admin email feature
 
-**Admin email feature** — was scoped and approved but not implemented yet. The plan:
-- CSV export is done (see Admin guide above); this section is about the *email* half.
-- Two features: (1) admin composes an email and sends it to selected/all members, and (2) an automatic email fires when a member is approved or rejected.
-- Requires a small server-side piece (a Next.js API route using `nodemailer` + the club's Gmail account via an **App Password**, and `firebase-admin` to verify the caller is really an admin server-side before allowing a send — this is the one place in the app where server-side code is justified, since email credentials can never be safely used from the browser).
-- Blocked on two manual setup items from the club's Google Workspace email (`iubcricketclub@iub.edu.bd`, confirmed to be Gmail-based): a Gmail **App Password** (requires 2-Step Verification enabled first), and a Firebase **service account key** (Firebase Console → Project Settings → Service Accounts → Generate new private key).
-- Once those two secrets exist, the remaining work is: `npm install nodemailer firebase-admin`, add `src/lib/firebaseAdmin.ts`, `src/lib/email.ts`, `src/app/api/admin/send-email/route.ts`, a `ComposeEmailPanel` component on `/admin/members`, and wiring the auto-email into `approveMember`/`rejectMember` in `src/lib/services/members.ts`.
+Built. Two parts, both send through the same daily quota (see below):
+
+1. **Automatic welcome email** — fires from `approveMember()` in `src/lib/services/members.ts` right after a pending applicant is approved (dashboard and `/admin/members` both go through this one function, so both are covered). Best-effort: if the email fails to send, the approval itself is unaffected — Firestore is the source of truth, the email is a courtesy.
+2. **Bulk announcement email** — the `ComposeEmailPanel` on `/admin/members` lets an admin filter approved members (by recruitment season/year and department) and fine-tune with checkboxes, then send a subject + message to everyone selected.
+
+**Architecture**: this is the one place in the app with server-side code, since email credentials can never be used from the browser. `src/app/api/admin/*` route handlers verify the caller is really an admin (`src/lib/auth/requireAdmin.ts`, using `firebase-admin` — bypasses `firestore.rules` entirely, so this check is the actual security boundary for these routes) before doing anything. Actual sending goes through `src/lib/server/mailer.ts` (`nodemailer` over Gmail SMTP).
+
+**Rate limiting / daily cap**: two separate rails, both in `src/lib/constants.ts`.
+
+- `DAILY_EMAIL_LIMIT` (default 400, override with `NEXT_PUBLIC_DAILY_EMAIL_LIMIT`) — shared across welcome + announcement emails, enforced by `reserveEmailQuota` in `src/lib/server/mailer.ts`. This is a *self-imposed* safety rail, not a known Gmail rule: it exists so a mistake or an unexpectedly large cohort can't burn the mailbox's real quota and get it temporarily locked for sending. Anything over the cap is not dropped — it queues in the `emailCampaigns` doc and goes out on a later run.
+- `MAX_EMAILS_PER_RUN` (150) — how many one invocation will send before stopping, so a run finishes inside the route's `maxDuration` (60s, the Vercel Hobby ceiling). Quota is reserved *after* applying this cap, so reserved-but-unsent emails can't leak quota.
+
+Sends are also **paced, not parallel**: the nodemailer transport is pooled and rate-limited (`maxConnections: 2`, ~4 messages/sec) and `processCampaignBatch` awaits one send at a time. Blasting a batch at Gmail concurrently is what actually trips spam heuristics and connection limits — the trickle looks like normal mailbox activity.
+
+A Vercel Cron job (`vercel.json` → `/api/cron/send-email-batches`, daily) drains whatever's still queued. Cron only runs on a deployed Vercel project, not `next dev` — to test batching locally, hit the cron route manually with the `CRON_SECRET` bearer token.
+
+**On Gmail limits**: every recipient is an `@iub.edu.bd` address (signup enforces it, `firestore.rules` re-checks it) and the sender is `cricket.club@iub.edu.bd` — so this is *internal* mail within one Google Workspace domain, which is treated far more permissively than mail to outside addresses. Google Workspace's published ceiling is 2,000 recipients/day; IUB's Workspace admin may have set something lower. The 400 default is deliberately below even the 500/day consumer-Gmail floor, so it's safe regardless of which tier actually applies.
+
+**Setup** (see `.env.example` for the exact variable names):
+- `OFFICE_MAIL` / `MAIL_APP_PASSORD` — Gmail address + App Password for the club's email (requires 2-Step Verification enabled first: myaccount.google.com → Security → App passwords). Already configured for this project.
+- `FIREBASE_SERVICE_ACCOUNT_KEY` — **still needed.** Firebase Console → Project Settings → Service Accounts → Generate new private key, pasted as a single-line JSON string. Without this, the API routes fail with a clear error rather than silently doing nothing.
+- `CRON_SECRET` — any random string, set in Vercel's project env vars (Vercel auto-attaches it as a Bearer token when it triggers the cron job).
+- `NEXT_PUBLIC_SITE_URL` — optional; only used to build the "View your profile" button in the welcome email.
 
 ## Known limitations
 

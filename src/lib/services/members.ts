@@ -1,6 +1,5 @@
 import {
   collection,
-  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -18,6 +17,7 @@ import type {
   Semester,
 } from "@/lib/types";
 import { getRecruitmentWindow, isWindowOpen } from "@/lib/services/recruitment";
+import { deleteMemberCompletely, sendWelcomeEmail } from "@/lib/services/adminEmail";
 
 export interface SignupInput {
   uid: string;
@@ -95,6 +95,10 @@ export async function approveMember(uid: string, adminUid: string) {
     reviewedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  // Membership is approved regardless of whether the notification email
+  // sends -- Firestore is the source of truth, the email is a courtesy.
+  sendWelcomeEmail(uid).catch(() => {});
 }
 
 export async function rejectMember(uid: string, adminUid: string) {
@@ -113,6 +117,10 @@ export async function setMemberAdmin(uid: string, isAdmin: boolean) {
   });
 }
 
+// Goes through the admin API route rather than deleting the doc directly:
+// removing members/{uid} alone would leave the person's Firebase Auth login
+// intact, so they could still sign in and their email would stay
+// permanently unavailable for re-registration.
 export async function deleteMember(uid: string) {
-  await deleteDoc(doc(db, "members", uid));
+  await deleteMemberCompletely(uid);
 }

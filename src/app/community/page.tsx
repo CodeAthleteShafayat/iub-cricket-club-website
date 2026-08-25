@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import ApprovedGuard from "@/components/auth/ApprovedGuard";
 import MessageList from "@/components/community/MessageList";
 import MessageComposer from "@/components/community/MessageComposer";
-import { subscribeToMessages } from "@/lib/services/community";
+import { deleteMessage, subscribeToMessages } from "@/lib/services/community";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { CommunityMessage } from "@/lib/types";
 
 function CommunityContent() {
-  const { user } = useAuth();
+  const { user, member } = useAuth();
   const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +26,12 @@ function CommunityContent() {
       </h1>
       <div className="card mt-4 flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4">
-          <MessageList messages={messages} currentUid={user?.uid} />
+          <MessageList
+            messages={messages}
+            currentUid={user?.uid}
+            canDelete={member?.isAdmin}
+            onDelete={deleteMessage}
+          />
           <div ref={bottomRef} />
         </div>
         <MessageComposer />

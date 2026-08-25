@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/send-email-batches",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
