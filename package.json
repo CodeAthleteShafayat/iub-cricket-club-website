@@ -2,14 +2,15 @@
   "name": "iub-cricket-club-website",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
+  },
+  "_comment_overrides": "firebase-admin -> jwks-rsa depends on jose ^6, which is ESM-only. Vercel's Lambda module loader (/opt/rust/nodejs.js) overrides Node's Module._load and does NOT implement require()-of-ESM interop, so every admin API route crashed in production with ERR_REQUIRE_ESM -- even on Node 22.23 where stock Node supports it natively. jose 5.x ships a real CommonJS build; jwks-rsa only uses importJWK and exportSPKI, which are unchanged between v5 and v6.",
+  "overrides": {
+    "jose": "^5.10.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
