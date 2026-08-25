@@ -128,7 +128,7 @@ A Vercel Cron job (`vercel.json` → `/api/cron/send-email-batches`, daily) drai
 - `OFFICE_MAIL` / `MAIL_APP_PASSORD` — Gmail address + App Password for the club's email (requires 2-Step Verification enabled first: myaccount.google.com → Security → App passwords). Already configured for this project.
 - `FIREBASE_SERVICE_ACCOUNT_KEY` — **still needed.** Firebase Console → Project Settings → Service Accounts → Generate new private key, pasted as a single-line JSON string. Without this, the API routes fail with a clear error rather than silently doing nothing.
 - `CRON_SECRET` — any random string, set in Vercel's project env vars (Vercel auto-attaches it as a Bearer token when it triggers the cron job).
-- `NEXT_PUBLIC_SITE_URL` — optional; only used to build the "View your profile" button in the welcome email.
+- `NEXT_PUBLIC_SITE_URL` — optional, and not needed on Vercel. The welcome email's "View your profile" button auto-detects the production URL from Vercel's built-in `VERCEL_PROJECT_PRODUCTION_URL`. Only set this manually to override that (local testing, or hosting elsewhere).
 
 ## Known limitations
 

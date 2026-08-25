@@ -101,8 +101,20 @@ function emailShell(bodyHtml: string) {
   </div>`;
 }
 
+// Vercel sets these automatically on every deployment -- no manual env var
+// needed. VERCEL_PROJECT_PRODUCTION_URL is the stable production domain
+// (correct even behind a custom domain); NEXT_PUBLIC_SITE_URL remains as a
+// manual override for local testing or non-Vercel hosting.
+function getSiteUrl(): string | null {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return null;
+}
+
 export function welcomeEmailHtml(name: string) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = getSiteUrl();
   return emailShell(`
     <p style="margin:0 0 16px;">Hi ${escapeHtml(name)},</p>
     <p style="margin:0 0 16px;">Congratulations! Your application to join the <strong>IUB Cricket Club</strong> has been approved, and you are now officially a member.</p>
