@@ -18,18 +18,19 @@ function getTransporter() {
       "OFFICE_MAIL / MAIL_APP_PASSORD are not set in .env.local"
     );
   }
-  // Pooled + rate-limited on purpose. Firing a whole batch at Gmail in
-  // parallel is what actually trips spam heuristics and connection limits --
-  // the steady trickle below looks like normal mailbox activity, and
-  // nodemailer queues internally so callers can still just await each send.
+  // Deliberately NOT pooled. Pooling is a long-lived-process optimization --
+  // it keeps a persistent SMTP connection open to reuse across many sends.
+  // On Vercel, every invocation is a fresh, short-lived process with nothing
+  // to reuse a pool across, and the open connection can outlive the
+  // function's response and hang the request instead of ever resolving
+  // (reproduced locally: a pooled send never completed, a plain one took
+  // ~4s). The actual pacing goal -- not blasting Gmail with a burst -- is
+  // already handled by processCampaignBatch awaiting one send at a time
+  // rather than firing them concurrently, so pooling added risk with no
+  // corresponding benefit here.
   transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user, pass },
-    pool: true,
-    maxConnections: 2,
-    maxMessages: 50,
-    rateDelta: 1000,
-    rateLimit: 4,
   });
   return transporter;
 }
