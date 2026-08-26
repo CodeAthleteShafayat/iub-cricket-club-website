@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/AuthContext";
@@ -37,6 +38,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <main className="flex-1">{children}</main>
           <Footer />
         </AuthProvider>
+        {/* Vercel Web Analytics. Cookieless and does not collect personal
+            data, so it needs no consent banner. The script only loads on a
+            Vercel deployment, so local dev and any other host are unaffected. */}
+        <Analytics />
       </body>
     </html>
   );
