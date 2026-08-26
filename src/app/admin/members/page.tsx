@@ -88,7 +88,7 @@ export default function AdminMembersPage() {
   async function handleDelete(m: Member) {
     if (
       !confirm(
-        `Delete ${m.name}'s member record? This cannot be undone and does not remove their login account.`
+        `Delete ${m.name} (${m.email})?\n\nThis removes both their member record and their login account, and cannot be undone. They would need to apply again from scratch, and can re-register with the same email.`
       )
     ) {
       return;
