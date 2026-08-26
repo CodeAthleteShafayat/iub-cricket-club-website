@@ -1,14 +1,46 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Mail } from "lucide-react";
+import { AlertTriangle, Check, Clock, Mail } from "lucide-react";
 import { sendBulkEmail } from "@/lib/services/adminEmail";
 import { subscribeToEmailCampaigns } from "@/lib/services/emailCampaigns";
-import { DAILY_EMAIL_LIMIT, SEMESTER_OPTIONS } from "@/lib/constants";
+import { DAILY_EMAIL_LIMIT, IUB_EMAIL_DOMAIN, SEMESTER_OPTIONS } from "@/lib/constants";
 import { formatBst } from "@/lib/utils/bst";
 import type { EmailCampaign, Member, Semester } from "@/lib/types";
 
 const DAILY_LIMIT = DAILY_EMAIL_LIMIT;
+
+/** Why an address can't be mailed, or null when it's fine. Checked in the UI
+ *  so a bad row is visible *before* sending rather than silently failing
+ *  mid-campaign. The server re-checks independently. */
+function emailProblem(email: string | undefined | null): string | null {
+  if (!email || !email.trim()) return "No email address on file";
+  const value = email.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Not a valid email address";
+  if (!value.toLowerCase().endsWith(`@${IUB_EMAIL_DOMAIN}`)) {
+    return `Not an @${IUB_EMAIL_DOMAIN} address`;
+  }
+  return null;
+}
+
+type SendState =
+  | { kind: "none" }
+  | { kind: "sent"; at: number }
+  | { kind: "queued" };
+
+/** Most recent campaign outcome per member, so the list can show a green tick
+ *  for "already delivered" and a clock for "queued for a later batch". */
+function buildSendStates(campaigns: EmailCampaign[]): Map<string, SendState> {
+  const states = new Map<string, SendState>();
+  // Campaigns arrive newest-first; the first hit for a uid is its latest.
+  for (const campaign of campaigns) {
+    for (const r of campaign.recipients ?? []) {
+      if (states.has(r.uid)) continue;
+      states.set(r.uid, r.sentAt ? { kind: "sent", at: r.sentAt } : { kind: "queued" });
+    }
+  }
+  return states;
+}
 
 export default function ComposeEmailPanel({
   approvedMembers,
@@ -52,7 +84,15 @@ export default function ComposeEmailPanel({
     [approvedMembers, seasonFilter, yearFilter, departmentFilter]
   );
 
-  const selected = filtered.filter((m) => !excludedUids.has(m.uid));
+  const sendStates = useMemo(() => buildSendStates(campaigns), [campaigns]);
+
+  // A row with a bad address is never selectable -- excluding it here (rather
+  // than only warning) means the count and the Send button reflect what will
+  // actually be attempted.
+  const invalidCount = filtered.filter((m) => emailProblem(m.email)).length;
+  const selected = filtered.filter(
+    (m) => !excludedUids.has(m.uid) && !emailProblem(m.email)
+  );
 
   function toggle(uid: string) {
     setExcludedUids((prev) => {
@@ -142,30 +182,92 @@ export default function ComposeEmailPanel({
         </select>
       </div>
 
-      <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
-        {filtered.length === 0 && (
+      <div className="max-h-72 overflow-auto rounded-lg border border-border">
+        {filtered.length === 0 ? (
           <p className="p-3 text-sm text-muted">No approved members match this filter.</p>
+        ) : (
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="sticky top-0 z-10 bg-surface text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th scope="col" className="w-10 px-3 py-2 font-semibold" />
+                <th scope="col" className="px-3 py-2 font-semibold">Name</th>
+                <th scope="col" className="px-3 py-2 font-semibold">Email</th>
+                <th scope="col" className="px-3 py-2 font-semibold">Department</th>
+                <th scope="col" className="px-3 py-2 font-semibold">Cohort</th>
+                <th scope="col" className="px-3 py-2 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((m) => {
+                const problem = emailProblem(m.email);
+                const state = sendStates.get(m.uid);
+                return (
+                  <tr
+                    key={m.uid}
+                    className={`border-t border-border align-middle ${
+                      problem
+                        ? "border-l-4 border-l-red-500 bg-red-50"
+                        : "hover:bg-surface"
+                    }`}
+                  >
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`Include ${m.name}`}
+                        disabled={!!problem}
+                        checked={!problem && !excludedUids.has(m.uid)}
+                        onChange={() => toggle(m.uid)}
+                        className="disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                    </td>
+                    <td className="px-3 py-2 font-medium text-navy">{m.name}</td>
+                    <td
+                      className={`px-3 py-2 ${
+                        problem ? "font-medium text-red-700" : "text-muted"
+                      }`}
+                    >
+                      {m.email || <span className="italic">missing</span>}
+                    </td>
+                    <td className="px-3 py-2 text-muted">{m.department}</td>
+                    <td className="px-3 py-2 text-muted">
+                      {m.recruitmentSeason ?? "—"} {m.recruitmentYear ?? ""}
+                    </td>
+                    <td className="px-3 py-2">
+                      {problem ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700">
+                          <AlertTriangle size={13} /> {problem}
+                        </span>
+                      ) : state?.kind === "sent" ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700"
+                          title={`Last sent ${formatBst(state.at)}`}
+                        >
+                          <Check size={13} /> Sent
+                        </span>
+                      ) : state?.kind === "queued" ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-dark">
+                          <Clock size={13} /> Queued
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
-        {filtered.map((m) => (
-          <label
-            key={m.uid}
-            className="flex items-center gap-2.5 border-b border-border px-3 py-2 text-sm last:border-b-0 hover:bg-surface"
-          >
-            <input
-              type="checkbox"
-              checked={!excludedUids.has(m.uid)}
-              onChange={() => toggle(m.uid)}
-            />
-            <span className="text-navy">{m.name}</span>
-            <span className="text-muted">
-              {m.department} · {m.recruitmentSeason ?? "—"} {m.recruitmentYear ?? ""}
-            </span>
-          </label>
-        ))}
       </div>
 
       <p className="text-sm text-muted">
         {selected.length} of {filtered.length} recipient{filtered.length === 1 ? "" : "s"} selected
+        {invalidCount > 0 && (
+          <span className="font-medium text-red-700">
+            {" "}
+            ({invalidCount} excluded for a bad address)
+          </span>
+        )}
         {selected.length > DAILY_LIMIT &&
           ` — will send in batches of ${DAILY_LIMIT}/day (~${Math.ceil(
             selected.length / DAILY_LIMIT

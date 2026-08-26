@@ -31,11 +31,15 @@ export async function createCampaign({
   );
 
   // Never trust client-supplied emails/names -- resolve them server-side, and
-  // only ever mail members who are actually approved right now.
+  // only ever mail members who are actually approved right now. Addresses that
+  // are missing or malformed are dropped here rather than queued: a recipient
+  // that can only ever fail would otherwise sit in the campaign forever,
+  // consuming a retry on every batch run and holding status at "sending".
   const recipients: EmailCampaignRecipient[] = memberSnaps
     .map((snap) => snap.data() as Member | undefined)
     .filter((m): m is Member => !!m && m.status === "approved")
-    .map((m) => ({ uid: m.uid, email: m.email, name: m.name, sentAt: null }));
+    .filter((m) => typeof m.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m.email.trim()))
+    .map((m) => ({ uid: m.uid, email: m.email.trim(), name: m.name, sentAt: null }));
 
   if (recipients.length === 0) {
     throw new Error("No valid approved recipients were selected");

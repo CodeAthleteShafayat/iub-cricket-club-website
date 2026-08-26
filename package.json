@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-cjs-compat.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
