@@ -22,6 +22,7 @@ import {
   IUB_EMAIL_DOMAIN,
 } from "@/lib/constants";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { sendPendingConfirmationEmail } from "@/lib/services/applicantEmail";
 import DepartmentAutocomplete from "@/components/members/DepartmentAutocomplete";
 
 const schema = z.object({
@@ -109,6 +110,9 @@ export default function SignupForm() {
         playingExperience: values.playingExperience,
         cricketingAchievements: values.cricketingAchievements ?? "",
       });
+      // Membership doc is the source of truth and is already written --
+      // the email is a courtesy, so a failure here shouldn't block signup.
+      sendPendingConfirmationEmail().catch(() => {});
       router.push("/pending-approval");
     } catch (error) {
       if (error instanceof FirebaseError && error.code === "auth/email-already-in-use") {
