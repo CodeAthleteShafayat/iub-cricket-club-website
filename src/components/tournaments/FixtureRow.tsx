@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { Award, MapPin } from "lucide-react";
 import { formatInnings } from "@/lib/cricket/standings";
 import { toJsDate } from "@/lib/utils/bst";
 import type { Match } from "@/lib/types";
@@ -65,6 +65,13 @@ export default function FixtureRow({ match }: { match: Match }) {
 
       {match.resultText && (
         <p className="mt-2 text-sm font-medium text-gold-dark">{match.resultText}</p>
+      )}
+
+      {match.playerOfTheMatch && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-navy">
+          <Award size={12} className="text-gold-dark" />
+          Player of the match: {match.playerOfTheMatch}
+        </p>
       )}
 
       {match.venue && (

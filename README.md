@@ -10,13 +10,15 @@ Official website for the IUB Cricket Club (Independent University, Bangladesh): 
 
 ## Features
 
-- Public pages: Home (with dynamic photo slideshow), About, Team (roster), News, Gallery, Contact
+- Public pages: Home (with dynamic photo slideshow), About, Tournaments, News, Gallery, Contact
 - Member self-signup → pending admin approval → full access
-- Member profile (view/edit, with photo upload)
-- Admin dashboard: approve/reject applicants, manage members, publish posts (with image), manage gallery, export all members as CSV
+- Member profile: read-only view by default, with an explicit "Edit profile" mode and photo upload
+- Admin dashboard: approve/reject applicants, manage members, run tournaments and matches, publish posts (with image), manage gallery, export all members as CSV
+- Tournaments: fixtures, results, group stages, and an automatically calculated points table with net run rate (see "Tournaments and matches" below)
 - Public news feed (posts, optional image)
 - Realtime community message wall for approved members
-- Gallery: admins upload photos and can star ("feature") any of them — starred photos automatically appear in a rotating slideshow on the homepage. No code changes ever needed to update the homepage slideshow; it's entirely admin-editable at `/gallery`.
+- Gallery: admins upload photos and can star ("feature") any of them. Starred photos automatically appear in a rotating slideshow on the homepage. No code changes are ever needed to update that slideshow; it is entirely admin-editable at `/gallery`.
+- Automated email: a confirmation when someone applies, a welcome email when an admin approves them, and filtered bulk announcements (see "Admin email feature" below)
 
 ## Getting started (new machine / new Firebase project)
 
@@ -162,6 +164,49 @@ from /var/task/node_modules/jwks-rsa/src/utils.js not supported.
 **The lesson**: when production and local disagree, get a fact from production before changing code. A throwaway route returning `process.version` settled in one deploy what two rounds of plausible-sounding guesses could not.
 
 **A second, unrelated bug fixed in the same session:** `nodemailer` was configured with `pool: true`. Connection pooling is a long-lived-process optimization; every Vercel invocation is a fresh short-lived process with no pool to reuse, and the open connection could outlive the response and hang the request indefinitely (reproduced locally: a pooled send never completed in 2 minutes, an unpooled one took ~4s). Pacing is instead handled by `processCampaignBatch` awaiting one send at a time. **Don't re-add pooling.**
+
+## Tournaments and matches
+
+Public section at `/tournaments`, with admin management under `/admin/tournaments` and `/admin/matches`. Everything here is readable without a login, matching News and Gallery, so a fixture or a result can be shared straight to Facebook or Instagram.
+
+**What an admin does:**
+
+1. Create a tournament (name, dates, venue, banner image, overs per innings, points for a win and for a tie). Optionally list its groups, comma separated, for example `Group A, Group B`.
+2. Add matches. Any two teams can play, not only IUB, so the site can host a full tournament rather than only the club's own fixtures. If the tournament has groups, each match is assigned to one, or left as "Knockout / no group" for semi-finals and the final.
+3. After the match, open "Add result" and enter both innings (runs, wickets, overs), who batted first, the outcome, and optionally the player of the match.
+
+The public tournament page then has three tabs: **Fixtures**, **Results**, and a **Points table** that recalculates itself from the results.
+
+### Things that are easy to get wrong, and how this handles them
+
+**Overs are stored as a count of legal balls, never as a decimal.** Cricket overs are base 6: after 16.5 comes 17.0, not 16.6. Storing "16.2" as a number breaks addition and equality, and net run rate divides by overs, so the error would propagate into the table. Admins still type `16.2` and it converts on save. `ballsFromOversInput()` rejects a ball part of 6 or more, since the over would already have ended.
+
+**Net run rate applies the all-out rule.** A side bowled out is charged its full quota of overs, not the overs it actually lasted. A team all out for 90 in 15.2 of 20 overs is charged 20 overs. Without this, collapsing cheaply would improve a team's net run rate, which is backwards.
+
+**Abandoned and no-result matches count as played and award tie points, but are excluded from net run rate.** Folding a rain-shortened partial innings into a rate would distort it.
+
+**Knockout matches never feed a points table.** Once a tournament defines groups, matches left ungrouped are excluded from every group table and shown in a separate Knockout stage section. A semi-final must not add group points.
+
+**Whether a win is described in runs or wickets depends on batting order, not on who won.** A side that defends a total wins by runs; a side that chases wins by wickets. That cannot be derived from the scores, which is why the result form asks who batted first. The result line is auto-suggested from it and remains editable.
+
+**Team names group the table by exact string match**, so `ULAB` and `ULAB ` would become two rows. The match form offers a datalist of names already in use to make picking easier than retyping. If you rename a group after assigning matches to it, those matches keep the old label and drop out of the tables, so rename groups before assigning.
+
+### Where the code lives
+
+- `src/lib/cricket/standings.ts`: all the cricket logic as pure functions with no Firestore imports, so it can be read and verified on its own. `computeStandings`, `computeStandingsByGroup`, `knockoutMatches`, `formatOvers`, `ballsFromOversInput`, `formatNrr`, `suggestResultText`.
+- `src/lib/services/{tournaments,matches}.ts`: Firestore reads and writes.
+- `src/components/tournaments/*`: public display and the admin forms.
+- The points table is computed on read and never stored. A persisted table can silently drift from the results it claims to summarise, and recomputing is free because the page has already loaded those matches.
+
+### Scale
+
+Nothing caps the number of matches. The practical limit is Firestore's free tier read budget: a tournament page costs one read per match, per visitor. Around 100 matches per tournament is comfortable. There is no pagination (consistent with the rest of the site), so the admin Matches page loads every match at once and would feel slow in the high hundreds.
+
+### Live scoring
+
+Deliberately not built. The data model is shaped so it can be added later without migration: a separate `liveScores/{matchId}` collection would hold only the ticking score, and `balls`-as-integer plus `oversPerInnings` are already in place.
+
+The binding constraint is the read budget, not writes. Firestore bills one read per listener per update, so a match updated 240 times with 150 viewers connected would cost around 37,000 reads against a 50,000 per day cap shared with the whole site. Per-ball writes themselves are trivial. If this gets built, do not put a live listener on the fixtures list or the homepage; use a single small pointer document instead.
 
 ## Known limitations
 

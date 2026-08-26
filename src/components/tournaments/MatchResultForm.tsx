@@ -38,6 +38,7 @@ const schema = z.object({
   outcome: z.enum(["A", "B", "tie", "no-result"]),
   battedFirst: z.enum(["A", "B"]),
   status: z.enum(["completed", "abandoned"]),
+  playerOfTheMatch: z.string().max(80, "Keep it under 80 characters").optional(),
   resultText: z.string().max(200).optional(),
 });
 
@@ -68,6 +69,7 @@ export default function MatchResultForm({ match }: { match: Match }) {
       outcome: match.outcome ?? "A",
       battedFirst: match.battedFirst ?? "A",
       status: match.status === "abandoned" ? "abandoned" : "completed",
+      playerOfTheMatch: match.playerOfTheMatch ?? "",
       resultText: match.resultText ?? "",
     },
   });
@@ -110,6 +112,9 @@ export default function MatchResultForm({ match }: { match: Match }) {
         inningsB: { runs: v.bRuns, wickets: v.bWickets, balls: bBalls },
         outcome: v.outcome,
         battedFirst: v.battedFirst,
+        // Empty input stores null rather than "", so the display can test one
+        // thing and lists stay free of blank award lines.
+        playerOfTheMatch: v.playerOfTheMatch?.trim() || null,
         resultText: (v.resultText || suggestion || "").trim(),
         status: v.status,
         updatedBy: user.uid,
@@ -198,6 +203,10 @@ export default function MatchResultForm({ match }: { match: Match }) {
         Abandoned and no-result matches still count as played and award tie points, but are left out
         of net run rate.
       </p>
+
+      <Field label="Player of the match (optional)" error={errors.playerOfTheMatch?.message}>
+        <input className="input" placeholder="e.g. Rahim Uddin" {...register("playerOfTheMatch")} />
+      </Field>
 
       <Field label="Result line shown publicly" error={errors.resultText?.message}>
         <input className="input" {...register("resultText")} />

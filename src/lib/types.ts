@@ -151,6 +151,9 @@ export interface Match {
    *  (defended a total) or wickets (chased it down) — it can't be derived from
    *  the scores. Null on matches saved before this was recorded. */
   battedFirst: "A" | "B" | null;
+  /** Free text rather than a member reference: the award often goes to an
+   *  opposition player, who has no account on this site. */
+  playerOfTheMatch: string | null;
   resultText: string | null;
   createdAt: number;
   updatedAt: number;

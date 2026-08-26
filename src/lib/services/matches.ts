@@ -38,6 +38,7 @@ export async function createMatch(input: MatchInput) {
     inningsB: null,
     outcome: null,
     battedFirst: null,
+    playerOfTheMatch: null,
     resultText: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -120,6 +121,7 @@ export interface MatchResultInput {
   inningsB: InningsResult;
   outcome: NonNullable<Match["outcome"]>;
   battedFirst: NonNullable<Match["battedFirst"]>;
+  playerOfTheMatch: string | null;
   resultText: string;
   status: Extract<Match["status"], "completed" | "abandoned">;
   updatedBy: string;
@@ -141,6 +143,7 @@ export async function clearMatchResult(id: string, updatedBy: string) {
     inningsB: null,
     outcome: null,
     battedFirst: null,
+    playerOfTheMatch: null,
     resultText: null,
     updatedBy,
     updatedAt: serverTimestamp(),
