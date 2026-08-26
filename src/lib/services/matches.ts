@@ -35,6 +35,7 @@ export async function createMatch(input: MatchInput) {
     inningsA: null,
     inningsB: null,
     outcome: null,
+    battedFirst: null,
     resultText: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -70,6 +71,31 @@ export function subscribeToMatches(
   );
 }
 
+/**
+ * Matches that belong to no tournament (standalone friendlies).
+ *
+ * Without this they'd be creatable in admin but invisible on the public site.
+ * Uses the same tournamentId + startAt composite index as the scoped query --
+ * null is a valid value for an equality filter.
+ */
+export function subscribeToFriendlies(
+  callback: (matches: Match[]) => void,
+  onError?: (error: Error) => void
+) {
+  const q = query(
+    collection(db, "matches"),
+    where("tournamentId", "==", null),
+    orderBy("startAt", "asc")
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Match));
+    },
+    (error) => onError?.(error)
+  );
+}
+
 export async function getMatch(id: string): Promise<Match | null> {
   const snap = await getDoc(doc(db, "matches", id));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as Match) : null;
@@ -91,6 +117,7 @@ export interface MatchResultInput {
   inningsA: InningsResult;
   inningsB: InningsResult;
   outcome: NonNullable<Match["outcome"]>;
+  battedFirst: NonNullable<Match["battedFirst"]>;
   resultText: string;
   status: Extract<Match["status"], "completed" | "abandoned">;
   updatedBy: string;
@@ -111,6 +138,7 @@ export async function clearMatchResult(id: string, updatedBy: string) {
     inningsA: null,
     inningsB: null,
     outcome: null,
+    battedFirst: null,
     resultText: null,
     updatedBy,
     updatedAt: serverTimestamp(),

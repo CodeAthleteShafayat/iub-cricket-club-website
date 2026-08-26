@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { subscribeToTournaments } from "@/lib/services/tournaments";
+import { subscribeToFriendlies } from "@/lib/services/matches";
 import PageHeader from "@/components/ui/PageHeader";
 import TournamentCard from "@/components/tournaments/TournamentCard";
-import type { Tournament, TournamentStatus } from "@/lib/types";
+import FixtureRow from "@/components/tournaments/FixtureRow";
+import type { Match, Tournament, TournamentStatus } from "@/lib/types";
 
 const GROUPS: { status: TournamentStatus; label: string }[] = [
   { status: "ongoing", label: "Happening now" },
@@ -14,6 +16,7 @@ const GROUPS: { status: TournamentStatus; label: string }[] = [
 
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [friendlies, setFriendlies] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +33,8 @@ export default function TournamentsPage() {
     );
   }, []);
 
+  useEffect(() => subscribeToFriendlies(setFriendlies), []);
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
       <PageHeader
@@ -40,7 +45,7 @@ export default function TournamentsPage() {
       {loading && <p className="text-sm text-muted">Loading tournaments...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {!loading && !error && tournaments.length === 0 && (
+      {!loading && !error && tournaments.length === 0 && friendlies.length === 0 && (
         <p className="text-sm text-muted">No tournaments have been added yet.</p>
       )}
 
@@ -59,6 +64,23 @@ export default function TournamentsPage() {
             </section>
           );
         })}
+
+        {friendlies.length > 0 && (
+          <section>
+            <h2 className="section-eyebrow mb-4">Friendlies &amp; other matches</h2>
+            <div className="flex flex-col gap-3">
+              {/* Upcoming first (the query sorts ascending), then played ones. */}
+              {[...friendlies]
+                .sort((a, b) => {
+                  const rank = (m: Match) => (m.status === "scheduled" ? 0 : 1);
+                  return rank(a) - rank(b);
+                })
+                .map((m) => (
+                  <FixtureRow key={m.id} match={m} />
+                ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

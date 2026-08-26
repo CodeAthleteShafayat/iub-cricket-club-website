@@ -135,10 +135,14 @@ export interface Match {
   startAt: number;
   oversPerInnings: number;
   status: MatchStatus;
-  /** All four stay null until an admin uploads the result. */
+  /** All of these stay null until an admin uploads the result. */
   inningsA: InningsResult | null;
   inningsB: InningsResult | null;
   outcome: "A" | "B" | "tie" | "no-result" | null;
+  /** Which side batted first. Decides whether a win is described in runs
+   *  (defended a total) or wickets (chased it down) — it can't be derived from
+   *  the scores. Null on matches saved before this was recorded. */
+  battedFirst: "A" | "B" | null;
   resultText: string | null;
   createdAt: number;
   updatedAt: number;

@@ -36,6 +36,7 @@ const schema = z.object({
   bWickets: inningsFields.wickets,
   bOvers: inningsFields.overs,
   outcome: z.enum(["A", "B", "tie", "no-result"]),
+  battedFirst: z.enum(["A", "B"]),
   status: z.enum(["completed", "abandoned"]),
   resultText: z.string().max(200).optional(),
 });
@@ -65,6 +66,7 @@ export default function MatchResultForm({ match }: { match: Match }) {
       bWickets: match.inningsB?.wickets ?? 0,
       bOvers: match.inningsB ? formatOvers(match.inningsB.balls) : "",
       outcome: match.outcome ?? "A",
+      battedFirst: match.battedFirst ?? "A",
       status: match.status === "abandoned" ? "abandoned" : "completed",
       resultText: match.resultText ?? "",
     },
@@ -83,6 +85,7 @@ export default function MatchResultForm({ match }: { match: Match }) {
     return suggestResultText({
       ...match,
       outcome: values.outcome as Match["outcome"],
+      battedFirst: values.battedFirst as Match["battedFirst"],
       inningsA: { runs: Number(values.aRuns) || 0, wickets: Number(values.aWickets) || 0, balls: aBalls },
       inningsB: { runs: Number(values.bRuns) || 0, wickets: Number(values.bWickets) || 0, balls: bBalls },
     });
@@ -106,6 +109,7 @@ export default function MatchResultForm({ match }: { match: Match }) {
         inningsA: { runs: v.aRuns, wickets: v.aWickets, balls: aBalls },
         inningsB: { runs: v.bRuns, wickets: v.bWickets, balls: bBalls },
         outcome: v.outcome,
+        battedFirst: v.battedFirst,
         resultText: (v.resultText || suggestion || "").trim(),
         status: v.status,
         updatedBy: user.uid,
@@ -168,13 +172,19 @@ export default function MatchResultForm({ match }: { match: Match }) {
         rate, whatever the overs faced. Enter the overs actually bowled; the calculation handles it.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Result" error={errors.outcome?.message}>
           <select className="input" {...register("outcome")}>
             <option value="A">{match.teamA} won</option>
             <option value="B">{match.teamB} won</option>
             <option value="tie">Match tied</option>
             <option value="no-result">No result</option>
+          </select>
+        </Field>
+        <Field label="Batted first" error={errors.battedFirst?.message}>
+          <select className="input" {...register("battedFirst")}>
+            <option value="A">{match.teamA}</option>
+            <option value="B">{match.teamB}</option>
           </select>
         </Field>
         <Field label="Match status" error={errors.status?.message}>

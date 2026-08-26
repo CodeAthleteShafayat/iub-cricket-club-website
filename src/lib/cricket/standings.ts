@@ -215,27 +215,35 @@ export function computeStandings(
  * simple two-innings club match that's inningsB by construction.
  */
 export function suggestResultText(match: Match): string {
-  const { inningsA, inningsB, teamA, teamB, outcome, oversPerInnings } = match;
+  const { inningsA, inningsB, teamA, teamB, outcome, oversPerInnings, battedFirst } = match;
   if (!inningsA || !inningsB) return "";
 
   if (outcome === "tie") return "Match tied";
   if (outcome === "no-result") return "No result";
+  if (outcome !== "A" && outcome !== "B") return "";
 
-  if (outcome === "A") {
-    // Team A batted first and defended, so the margin is in runs.
-    const margin = inningsA.runs - inningsB.runs;
-    return `${teamA} won by ${margin} run${margin === 1 ? "" : "s"}`;
+  // Which margin to quote depends on batting order, not on who won: a side
+  // that defended a total wins by runs, a side that chased wins by wickets.
+  // This can't be inferred from the scores, so it has to be recorded.
+  // Older matches saved before battedFirst existed fall back to A batting
+  // first, which was the previous (silently wrong for B-first games) behaviour.
+  const first = battedFirst ?? "A";
+  const chasingSide = first === "A" ? "B" : "A";
+
+  const winnerName = outcome === "A" ? teamA : teamB;
+  const winnerInnings = outcome === "A" ? inningsA : inningsB;
+  const loserInnings = outcome === "A" ? inningsB : inningsA;
+
+  if (outcome === chasingSide) {
+    const wicketsLeft = 10 - winnerInnings.wickets;
+    const ballsLeft = oversPerInnings * BALLS_PER_OVER - winnerInnings.balls;
+    const tail =
+      ballsLeft > 0 ? ` (${ballsLeft} ball${ballsLeft === 1 ? "" : "s"} remaining)` : "";
+    return `${winnerName} won by ${wicketsLeft} wicket${wicketsLeft === 1 ? "" : "s"}${tail}`;
   }
 
-  if (outcome === "B") {
-    // Team B chased, so the margin is wickets in hand, with balls to spare.
-    const wicketsLeft = 10 - inningsB.wickets;
-    const ballsLeft = oversPerInnings * BALLS_PER_OVER - inningsB.balls;
-    const tail = ballsLeft > 0 ? ` (${ballsLeft} ball${ballsLeft === 1 ? "" : "s"} remaining)` : "";
-    return `${teamB} won by ${wicketsLeft} wicket${wicketsLeft === 1 ? "" : "s"}${tail}`;
-  }
-
-  return "";
+  const margin = winnerInnings.runs - loserInnings.runs;
+  return `${winnerName} won by ${margin} run${margin === 1 ? "" : "s"}`;
 }
 
 /** "IUB 178/4 (18.2)" — the compact innings line used in lists and results. */
