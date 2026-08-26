@@ -214,6 +214,9 @@ export default function SignupForm() {
 
       <Field label="Password" error={errors.password?.message}>
         <input className="input" type="password" {...register("password")} />
+        <span className="text-xs text-muted">
+          Create a password for your IUB Cricket Club account. This is not your IUB student portal password.
+        </span>
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

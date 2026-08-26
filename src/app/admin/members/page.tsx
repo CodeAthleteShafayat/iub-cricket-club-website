@@ -11,6 +11,7 @@ import {
   subscribeToAllMembers,
 } from "@/lib/services/members";
 import { isWindowOpen, subscribeToRecruitmentWindow } from "@/lib/services/recruitment";
+import { transformImage } from "@/lib/services/cloudinary";
 import { formatBst } from "@/lib/utils/bst";
 import { SEMESTER_OPTIONS } from "@/lib/constants";
 import type { Member, RecruitmentWindow, Semester } from "@/lib/types";
@@ -181,6 +182,16 @@ export default function AdminMembersPage() {
               <span className="w-6 shrink-0 text-right font-medium tabular-nums text-muted">
                 {index + 1}
               </span>
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-navy/5">
+                {m.photoURL && (
+                  // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary URL
+                  <img
+                    src={transformImage(m.photoURL, { width: 80, height: 80 })}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-navy">
                   {m.name}

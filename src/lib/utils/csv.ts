@@ -5,6 +5,7 @@ import { PLAYING_EXPERIENCE_OPTIONS } from "@/lib/constants";
 const CSV_COLUMNS: { header: string; get: (m: Member, index: number) => string }[] = [
   { header: "#", get: (_m, index) => String(index + 1) },
   { header: "Name", get: (m) => m.name },
+  { header: "Photo URL", get: (m) => m.photoURL ?? "" },
   { header: "Student ID", get: (m) => m.studentId },
   { header: "Department", get: (m) => m.department },
   { header: "Semester", get: (m) => m.semester },
