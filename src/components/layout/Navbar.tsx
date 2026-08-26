@@ -13,6 +13,7 @@ import { CLUB_NAME } from "@/lib/constants";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
+  { href: "/tournaments", label: "Tournaments" },
   { href: "/posts", label: "News" },
   { href: "/gallery", label: "Gallery" },
   { href: "/contact", label: "Contact" },

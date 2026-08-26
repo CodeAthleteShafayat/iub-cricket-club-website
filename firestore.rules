@@ -133,6 +133,44 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Tournaments and matches are public like posts/gallery -- fixtures,
+    // results, and the points table are meant to be shareable without a login.
+    match /tournaments/{tournamentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin()
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 120
+                    && request.resource.data.status in ['upcoming', 'ongoing', 'completed']
+                    && request.resource.data.oversPerInnings is int
+                    && request.resource.data.oversPerInnings > 0
+                    && request.resource.data.oversPerInnings <= 60
+                    && request.resource.data.pointsForWin is int
+                    && request.resource.data.pointsForWin >= 0
+                    && request.resource.data.pointsForTie is int
+                    && request.resource.data.pointsForTie >= 0;
+    }
+
+    // Note: the nested inningsA/inningsB maps aren't validated here -- rules
+    // can't check optional nested shapes without a lot of noise, and these are
+    // admin-only writes. MatchResultForm validates them with zod; this block is
+    // defence-in-depth on the fields that would corrupt the points table.
+    match /matches/{matchId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin()
+                    && request.resource.data.teamA is string
+                    && request.resource.data.teamA.size() > 0
+                    && request.resource.data.teamA.size() <= 60
+                    && request.resource.data.teamB is string
+                    && request.resource.data.teamB.size() > 0
+                    && request.resource.data.teamB.size() <= 60
+                    && request.resource.data.teamA != request.resource.data.teamB
+                    && request.resource.data.oversPerInnings is int
+                    && request.resource.data.oversPerInnings > 0
+                    && request.resource.data.oversPerInnings <= 60
+                    && request.resource.data.status in ['scheduled', 'completed', 'abandoned'];
+    }
+
     // Written only by the admin API routes via the Firebase Admin SDK
     // (src/lib/server/campaigns.ts, src/lib/server/mailer.ts), which
     // bypasses these rules entirely -- the client only ever reads campaign

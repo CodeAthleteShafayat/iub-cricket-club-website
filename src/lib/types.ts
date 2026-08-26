@@ -89,6 +89,77 @@ export interface GalleryImage {
   createdAt: number;
 }
 
+export type TournamentStatus = "upcoming" | "ongoing" | "completed";
+
+export interface Tournament {
+  id: string;
+  name: string;
+  description: string;
+  venue: string;
+  /** Plain YYYY-MM-DD calendar dates, not timestamps — a tournament spans days,
+   *  and pinning them to an instant would shift the date across timezones. */
+  startDate: string;
+  endDate: string;
+  status: TournamentStatus;
+  imageURL: string | null;
+  /** Default innings length for this tournament's matches, and the "full quota"
+   *  figure the all-out rule charges in net run rate. Never hardcode 20. */
+  oversPerInnings: number;
+  pointsForWin: number;
+  /** Also awarded for a no-result or abandoned match. */
+  pointsForTie: number;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type MatchStatus = "scheduled" | "completed" | "abandoned";
+
+/** One team's innings, entered once after the match is played. */
+export interface InningsResult {
+  runs: number;
+  wickets: number;
+  /** Legal balls faced, as an integer. Overs are base-6 (after 16.5 comes
+   *  17.0), so a decimal "16.2" can't be added or compared correctly. Store
+   *  balls, derive the display via formatOvers(). */
+  balls: number;
+}
+
+export interface Match {
+  id: string;
+  /** null for a standalone friendly that isn't part of any tournament. */
+  tournamentId: string | null;
+  teamA: string;
+  teamB: string;
+  venue: string;
+  startAt: number;
+  oversPerInnings: number;
+  status: MatchStatus;
+  /** All four stay null until an admin uploads the result. */
+  inningsA: InningsResult | null;
+  inningsB: InningsResult | null;
+  outcome: "A" | "B" | "tie" | "no-result" | null;
+  resultText: string | null;
+  createdAt: number;
+  updatedAt: number;
+  updatedBy: string;
+}
+
+/** Derived on read from a tournament's matches, never stored — a persisted
+ *  table can silently drift from the results it claims to summarise. */
+export interface StandingsRow {
+  team: string;
+  played: number;
+  won: number;
+  lost: number;
+  tied: number;
+  points: number;
+  /** Net run rate, or null when the team has no NRR-eligible completed match. */
+  nrr: number | null;
+  runsScored: number;
+  runsConceded: number;
+}
+
 export interface EmailCampaignRecipient {
   uid: string;
   email: string;

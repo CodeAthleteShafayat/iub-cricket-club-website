@@ -2,12 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Info, LayoutDashboard, Newspaper, Users } from "lucide-react";
+import {
+  CalendarDays,
+  Info,
+  LayoutDashboard,
+  Newspaper,
+  Trophy,
+  Users,
+} from "lucide-react";
 import AdminGuard from "@/components/auth/AdminGuard";
 
 const TABS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },
+  { href: "/admin/matches", label: "Matches", icon: CalendarDays },
   { href: "/admin/posts", label: "Posts", icon: Newspaper },
   { href: "/admin/about", label: "About", icon: Info },
 ];

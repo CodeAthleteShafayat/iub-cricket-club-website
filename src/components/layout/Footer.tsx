@@ -4,6 +4,7 @@ import { CLUB_NAME, SOCIAL_LINKS } from "@/lib/constants";
 
 const LINKS = [
   { href: "/about", label: "About" },
+  { href: "/tournaments", label: "Tournaments" },
   { href: "/posts", label: "News" },
   { href: "/gallery", label: "Gallery" },
   { href: "/contact", label: "Contact" },
