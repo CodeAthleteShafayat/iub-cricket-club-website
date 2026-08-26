@@ -49,6 +49,12 @@ export default function PhotoCarousel({
           key={img.src}
           src={img.src}
           alt={img.alt}
+          // The first slide is the hero's visible content, so it must not be
+          // queued behind other requests; the rest are off-screen until the
+          // carousel advances and can load lazily.
+          loading={i === 0 ? "eager" : "lazy"}
+          fetchPriority={i === 0 ? "high" : "low"}
+          decoding="async"
           className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[1400ms] ease-out ${
             i === activeIndex ? "opacity-100 scale-105" : "opacity-0 scale-100"
           }`}

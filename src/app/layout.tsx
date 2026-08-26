@@ -22,6 +22,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${jakarta.variable} h-full antialiased`}
     >
+      <head>
+        {/* Every image on the site (hero carousel, profile photos, gallery)
+            comes from Cloudinary. Opening the DNS/TLS connection during HTML
+            parse means the hero photo isn't also paying for the handshake
+            once its URL finally arrives from Firestore. */}
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="min-h-full flex flex-col">
         <div className="grain-overlay" />
         <AuthProvider>
