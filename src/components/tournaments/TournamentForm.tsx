@@ -23,6 +23,7 @@ const schema = z
       .int("Whole overs only")
       .min(1, "Must be at least 1")
       .max(60, "Must be 60 or fewer"),
+    groupsText: z.string().max(300).optional(),
     pointsForWin: z.coerce.number().int().min(0).max(20),
     pointsForTie: z.coerce.number().int().min(0).max(20),
   })
@@ -59,12 +60,14 @@ export default function TournamentForm({
           endDate: existingTournament.endDate,
           status: existingTournament.status,
           oversPerInnings: existingTournament.oversPerInnings,
+          groupsText: (existingTournament.groups ?? []).join(", "),
           pointsForWin: existingTournament.pointsForWin,
           pointsForTie: existingTournament.pointsForTie,
         }
       : {
           status: "upcoming",
           oversPerInnings: 20,
+          groupsText: "",
           pointsForWin: 2,
           pointsForTie: 1,
         },
@@ -87,6 +90,13 @@ export default function TournamentForm({
         endDate: parsed.endDate,
         status: parsed.status,
         oversPerInnings: parsed.oversPerInnings,
+        // Comma-separated in the UI because a tournament has two or three
+        // groups at most; a repeatable field array would be more machinery
+        // than the problem deserves.
+        groups: (parsed.groupsText ?? "")
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean),
         pointsForWin: parsed.pointsForWin,
         pointsForTie: parsed.pointsForTie,
         imageURL,
@@ -147,6 +157,14 @@ export default function TournamentForm({
           <input className="input" type="number" min={0} max={20} {...register("pointsForTie")} />
         </Field>
       </div>
+      <Field label="Groups (optional)" error={errors.groupsText?.message}>
+        <input className="input" placeholder="Group A, Group B" {...register("groupsText")} />
+      </Field>
+      <p className="-mt-2 text-xs text-muted">
+        Separate group names with commas. Leave empty for a single combined points table. Matches
+        left out of a group (knockouts, the final) appear separately and never affect a group table.
+      </p>
+
       <p className="-mt-2 text-xs text-muted">
         Overs per innings is also the full quota charged in net run rate when a team is bowled out.
         Tie points are also awarded for an abandoned or no-result match.

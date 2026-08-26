@@ -22,6 +22,7 @@ export interface TournamentInput {
   status: Tournament["status"];
   imageURL: string | null;
   oversPerInnings: number;
+  groups: string[];
   pointsForWin: number;
   pointsForTie: number;
   createdBy: string;

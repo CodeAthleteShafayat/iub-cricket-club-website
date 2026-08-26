@@ -5,7 +5,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { getTournament } from "@/lib/services/tournaments";
 import { subscribeToMatches } from "@/lib/services/matches";
 import { transformImage } from "@/lib/services/cloudinary";
-import { computeStandings } from "@/lib/cricket/standings";
+import { computeStandingsByGroup, knockoutMatches } from "@/lib/cricket/standings";
 import Spinner from "@/components/ui/Spinner";
 import FixtureRow from "@/components/tournaments/FixtureRow";
 import StandingsTable from "@/components/tournaments/StandingsTable";
@@ -61,8 +61,12 @@ export default function TournamentDetail({ tournamentId }: { tournamentId: strin
         .reverse(),
     [matches]
   );
-  const standings = useMemo(
-    () => (tournament ? computeStandings(matches, tournament) : []),
+  const groupTables = useMemo(
+    () => (tournament ? computeStandingsByGroup(matches, tournament) : []),
+    [matches, tournament]
+  );
+  const knockouts = useMemo(
+    () => (tournament ? knockoutMatches(matches, tournament) : []),
     [matches, tournament]
   );
 
@@ -154,7 +158,36 @@ export default function TournamentDetail({ tournamentId }: { tournamentId: strin
             finished.map((m) => <FixtureRow key={m.id} match={m} />)
           ))}
 
-        {tab === "table" && <StandingsTable rows={standings} />}
+        {tab === "table" && (
+          <div className="flex flex-col gap-8">
+            {groupTables.map((table) => (
+              <div key={table.group ?? "all"}>
+                {table.group && (
+                  <h3 className="mb-2.5 font-heading text-sm font-semibold text-navy">
+                    {table.group}
+                  </h3>
+                )}
+                <StandingsTable rows={table.rows} />
+              </div>
+            ))}
+
+            {knockouts.length > 0 && (
+              <div>
+                <h3 className="mb-2.5 font-heading text-sm font-semibold text-navy">
+                  Knockout stage
+                </h3>
+                <p className="mb-3 text-xs text-muted">
+                  These sit outside the group stage and don&apos;t affect the tables above.
+                </p>
+                <div className="flex flex-col gap-3">
+                  {knockouts.map((m) => (
+                    <FixtureRow key={m.id} match={m} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

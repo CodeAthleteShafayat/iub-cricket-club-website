@@ -21,6 +21,8 @@ export interface MatchInput {
   venue: string;
   startAt: Date;
   oversPerInnings: number;
+  /** null = outside the group stage (knockout), or an ungrouped tournament. */
+  group: string | null;
   updatedBy: string;
 }
 
@@ -103,9 +105,9 @@ export async function getMatch(id: string): Promise<Match | null> {
 
 export async function updateMatch(
   id: string,
-  edits: Partial<Pick<Match, "tournamentId" | "teamA" | "teamB" | "venue" | "oversPerInnings">> & {
-    startAt?: Date;
-  }
+  edits: Partial<
+    Pick<Match, "tournamentId" | "teamA" | "teamB" | "venue" | "oversPerInnings" | "group">
+  > & { startAt?: Date }
 ) {
   await updateDoc(doc(db, "matches", id), {
     ...edits,

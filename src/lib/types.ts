@@ -105,6 +105,10 @@ export interface Tournament {
   /** Default innings length for this tournament's matches, and the "full quota"
    *  figure the all-out rule charges in net run rate. Never hardcode 20. */
   oversPerInnings: number;
+  /** Group names, e.g. ["Group A", "Group B"]. Empty means the tournament is a
+   *  single flat table. Absent entirely on tournaments created before groups
+   *  existed, so always read it as `groups ?? []`. */
+  groups: string[];
   pointsForWin: number;
   /** Also awarded for a no-result or abandoned match. */
   pointsForTie: number;
@@ -135,6 +139,10 @@ export interface Match {
   startAt: number;
   oversPerInnings: number;
   status: MatchStatus;
+  /** Which group this match belongs to, matching a name in the tournament's
+   *  `groups`. Null means it sits outside the group stage (knockout, final, or
+   *  a tournament with no groups at all) -- those never feed a points table. */
+  group: string | null;
   /** All of these stay null until an admin uploads the result. */
   inningsA: InningsResult | null;
   inningsB: InningsResult | null;

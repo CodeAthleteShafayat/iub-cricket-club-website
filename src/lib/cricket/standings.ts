@@ -207,6 +207,53 @@ export function computeStandings(
   });
 }
 
+export interface GroupStandings {
+  /** The group name, or null for the single combined table of an ungrouped
+   *  tournament. */
+  group: string | null;
+  rows: StandingsRow[];
+}
+
+/**
+ * One points table per group, or a single combined table when the tournament
+ * has no groups.
+ *
+ * Matches with no group are deliberately excluded once a tournament defines
+ * groups: those are the knockout and final fixtures, and a semi-final must not
+ * add points to a group table. In an ungrouped tournament there is nothing to
+ * exclude, so every match counts.
+ */
+export function computeStandingsByGroup(
+  matches: Match[],
+  tournament: Pick<
+    Tournament,
+    "pointsForWin" | "pointsForTie" | "oversPerInnings" | "groups"
+  >
+): GroupStandings[] {
+  const groups = tournament.groups ?? [];
+
+  if (groups.length === 0) {
+    return [{ group: null, rows: computeStandings(matches, tournament) }];
+  }
+
+  return groups.map((group) => ({
+    group,
+    rows: computeStandings(
+      matches.filter((m) => m.group === group),
+      tournament
+    ),
+  }));
+}
+
+/** Matches outside the group stage, shown as a separate knockout section. */
+export function knockoutMatches(
+  matches: Match[],
+  tournament: Pick<Tournament, "groups">
+): Match[] {
+  if ((tournament.groups ?? []).length === 0) return [];
+  return matches.filter((m) => !m.group);
+}
+
 /**
  * Proposes the result line for a finished match. The admin can edit it before
  * saving — this only saves typing for the common cases.

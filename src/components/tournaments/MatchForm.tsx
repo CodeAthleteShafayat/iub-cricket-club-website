@@ -23,6 +23,7 @@ const schema = z
     venue: z.string().max(120).optional(),
     startAt: z.string().min(1, "Date and time are required"),
     oversPerInnings: z.coerce.number().int().min(1).max(60),
+    group: z.string(),
   })
   .refine((v) => v.teamA.trim() !== v.teamB.trim(), {
     message: "The two teams must be different",
@@ -65,12 +66,16 @@ export default function MatchForm({
             return d ? bstDateToDatetimeLocalValue(d) : "";
           })(),
           oversPerInnings: existingMatch.oversPerInnings,
+          group: existingMatch.group ?? "",
         }
-      : { tournamentId: "", oversPerInnings: 20 },
+      : { tournamentId: "", oversPerInnings: 20, group: "" },
   });
 
   // useWatch rather than watch(): subscription-based and safe to memoize.
   const selectedTournamentId = useWatch({ control, name: "tournamentId" });
+
+  const selectedTournament = tournaments.find((t) => t.id === selectedTournamentId);
+  const availableGroups = selectedTournament?.groups ?? [];
 
   // Picking a tournament pulls in its default innings length, so the admin
   // doesn't have to remember whether this competition is T20 or 50-over.
@@ -102,6 +107,9 @@ export default function MatchForm({
         // own machine timezone -- same helper the recruitment window uses.
         startAt: datetimeLocalToBstDate(parsed.startAt),
         oversPerInnings: parsed.oversPerInnings,
+        // Empty means knockout / no group. Stored as null so the standings
+        // code has one thing to test rather than two.
+        group: parsed.group || null,
       };
 
       if (existingMatch) {
@@ -148,6 +156,25 @@ export default function MatchForm({
         Team names group the points table, so spelling must match exactly between matches. Pick from
         the suggestions where you can.
       </p>
+
+      {availableGroups.length > 0 && (
+        <>
+          <Field label="Group" error={errors.group?.message}>
+            <select className="input" {...register("group")}>
+              <option value="">Knockout / no group</option>
+              {availableGroups.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <p className="-mt-2 text-xs text-muted">
+            Only group-stage matches feed a points table. Leave this as knockout for semi-finals and
+            the final.
+          </p>
+        </>
+      )}
 
       <Field label="Date and time" error={errors.startAt?.message}>
         <input className="input" type="datetime-local" {...register("startAt")} />

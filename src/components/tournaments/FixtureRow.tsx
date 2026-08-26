@@ -26,8 +26,13 @@ export default function FixtureRow({ match }: { match: Match }) {
   return (
     <div className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted">
+        <span className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted">
           {formatMatchTime(match.startAt)}
+          {match.group && (
+            <span className="rounded-full bg-navy/5 px-2 py-0.5 font-semibold text-navy">
+              {match.group}
+            </span>
+          )}
         </span>
         {abandoned && (
           <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-muted">
