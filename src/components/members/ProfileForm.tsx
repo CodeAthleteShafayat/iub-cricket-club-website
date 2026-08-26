@@ -6,7 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { updateOwnProfile } from "@/lib/services/members";
-import { transformImage, uploadImage } from "@/lib/services/cloudinary";
+import {
+  PROFILE_PHOTO_MAX_DIMENSION,
+  transformImage,
+  uploadImage,
+} from "@/lib/services/cloudinary";
 import {
   ROLE_OPTIONS,
   SEMESTER_OPTIONS,
@@ -83,7 +87,9 @@ export default function ProfileForm() {
     try {
       let photoURL = member!.photoURL;
       if (photoFile) {
-        photoURL = await uploadImage(photoFile, "profile-photos");
+        photoURL = await uploadImage(photoFile, "profile-photos", {
+          maxDimension: PROFILE_PHOTO_MAX_DIMENSION,
+        });
       }
       await updateOwnProfile(user!.uid, {
         ...values,

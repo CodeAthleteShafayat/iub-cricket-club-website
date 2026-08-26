@@ -9,7 +9,11 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { auth } from "@/lib/firebase/client";
 import { createMemberDoc } from "@/lib/services/members";
-import { transformImage, uploadImage } from "@/lib/services/cloudinary";
+import {
+  PROFILE_PHOTO_MAX_DIMENSION,
+  transformImage,
+  uploadImage,
+} from "@/lib/services/cloudinary";
 import {
   ROLE_OPTIONS,
   SEMESTER_OPTIONS,
@@ -81,7 +85,9 @@ export default function SignupForm() {
       return;
     }
     try {
-      const photoURL = await uploadImage(photoFile, "profile-photos");
+      const photoURL = await uploadImage(photoFile, "profile-photos", {
+        maxDimension: PROFILE_PHOTO_MAX_DIMENSION,
+      });
       const credential = await createUserWithEmailAndPassword(
         auth,
         values.email,
