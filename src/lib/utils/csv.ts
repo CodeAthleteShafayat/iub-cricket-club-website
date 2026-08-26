@@ -35,10 +35,25 @@ const CSV_COLUMNS: { header: string; get: (m: Member, index: number) => string }
 ];
 
 function escapeCsvField(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Defuse spreadsheet formula injection before anything else. Excel, Sheets,
+  // and LibreOffice execute a cell whose text begins with =, +, -, @, or a
+  // leading tab/CR. Several columns here are free text a member types about
+  // themselves (name, achievements, department), so a hostile applicant could
+  // otherwise plant something like =HYPERLINK("http://evil","click me") and
+  // have it run the moment an admin opens the export -- which is the entire
+  // point of the export, so it would run.
+  //
+  // Prefixing with an apostrophe is the standard fix: spreadsheets treat the
+  // rest as literal text and don't display the apostrophe itself.
+  let safe = value;
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = `'${safe}`;
   }
-  return value;
+
+  if (/[",\n]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
 }
 
 export function membersToCsv(members: Member[]): string {

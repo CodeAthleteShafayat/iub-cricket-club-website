@@ -130,11 +130,46 @@ A Vercel Cron job (`vercel.json` → `/api/cron/send-email-batches`, daily) drai
 - `CRON_SECRET` — any random string, set in Vercel's project env vars (Vercel auto-attaches it as a Bearer token when it triggers the cron job).
 - `NEXT_PUBLIC_SITE_URL` — optional, and not needed on Vercel. The welcome email's "View your profile" button auto-detects the production URL from Vercel's built-in `VERCEL_PROJECT_PRODUCTION_URL`. Only set this manually to override that (local testing, or hosting elsewhere).
 
+### Emails work locally but fail in production — read this first
+
+This cost a full debugging session, and the failure is **invisible in local development**. If admin API routes (send-welcome-email, send-email, delete-member) return `500` on Vercel while working perfectly under `npm run dev`, this is almost certainly why.
+
+**Symptom.** `POST /api/admin/send-welcome-email` returns HTTP 500 with an empty body in production. Nothing appears in the browser console, because `approveMember()` deliberately swallows email errors (`sendWelcomeEmail(uid).catch(() => {})`) so a mail failure can never block an approval. The real error only exists in Vercel's function logs:
+
+```
+npx vercel logs https://iubcricketclub.vercel.app
+```
+
+```
+Error: require() of ES Module /var/task/node_modules/jose/dist/webapi/index.js
+from /var/task/node_modules/jwks-rsa/src/utils.js not supported.
+{ code: 'ERR_REQUIRE_ESM' }
+```
+
+**Cause.** Vercel's Lambda runtime replaces Node's module loader with its own (`/opt/rust/nodejs.js`), and that loader does **not** implement `require()`-of-ESM interop. `firebase-admin` → `jwks-rsa` calls `require('jose')`, and jose v6 dropped its CommonJS build entirely (its export map offers only `./dist/webapi/index.js`, ESM). Stock Node ≥20.19/22.12 handles this fine, which is exactly why local dev never reproduces it.
+
+**Fix.** `package.json` pins `overrides.jose` to `^5.10.0` — jose 5 still ships a real CJS build (`"require": "./dist/node/cjs/index.js"`). `jwks-rsa` uses only `importJWK` and `exportSPKI`, unchanged between v5 and v6.
+
+**Guard.** `scripts/check-cjs-compat.mjs` runs as a `prebuild` step and fails the build if jose ever loses its CommonJS export or those two functions. **Do not delete the pin or the guard to make a build error go away** — you will silently break every admin email route in production while everything still looks fine locally.
+
+**Two wrong turns, recorded so nobody repeats them:**
+
+| Theory | Why it looked right | Why it was wrong |
+|---|---|---|
+| Turbopack's bundler | Error mentioned `[turbopack]_runtime.js` | Switching to `next build --webpack` changed the stack trace but not the failure. The `--webpack` flag was kept (harmless, arguably safer) but it is *not* the fix. |
+| Node version too old for `require(ESM)` | jose docs list `^20.19 \|\| ^22.12 \|\| >=23` | A temporary diagnostic route reported the live runtime as **Node v22.23.1** — comfortably above the threshold. Version was never the issue. |
+
+**The lesson**: when production and local disagree, get a fact from production before changing code. A throwaway route returning `process.version` settled in one deploy what two rounds of plausible-sounding guesses could not.
+
+**A second, unrelated bug fixed in the same session:** `nodemailer` was configured with `pool: true`. Connection pooling is a long-lived-process optimization; every Vercel invocation is a fresh short-lived process with no pool to reuse, and the open connection could outlive the response and hang the request indefinitely (reproduced locally: a pooled send never completed in 2 minutes, an unpooled one took ~4s). Pacing is instead handled by `processCampaignBatch` awaiting one send at a time. **Don't re-add pooling.**
+
 ## Known limitations
 
 - No automated tests — this is an MVP verified through manual/browser testing.
 - The gallery's "who can upload/delete/feature" check is enforced by Firestore rules on the `galleryImages` collection (admin-only), but the actual image *files* on Cloudinary have no per-file access control — anyone with a direct image URL can view it (fine for a public club gallery, not suitable for private/sensitive images).
 - Firestore composite indexes must be added manually (`firestore.indexes.json`) any time a new query combines a `where` with an `orderBy` on a different field — Firestore does not error at build/type-check time, only at runtime in the browser console (`failed-precondition`).
+- Firebase Auth does not verify that a signup email is deliverable. Any address matching `@iub.edu.bd` creates a real pending account, so a determined outsider can create applicant records. They cannot escalate (`firestore.rules` forces `status: 'pending'` and `isAdmin: false` on create, and blocks members from editing either field), but admins should not assume every pending row is a real student.
+- The shared daily email quota is global. A single large announcement consumes budget that welcome emails also draw from, so a 400-recipient send can delay that day's approval emails to the next batch.
 
 ## Deployment
 

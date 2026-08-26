@@ -146,5 +146,16 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // One doc per applicant who has been sent the "application received"
+    // email, written only by /api/send-pending-email via the Admin SDK. This
+    // is what stops that route from being looped to drain the shared daily
+    // email quota, so it must stay unwritable from the client -- in
+    // particular it deliberately does NOT live on the member doc, which a
+    // member is allowed to update themselves.
+    match /pendingEmailClaims/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }
