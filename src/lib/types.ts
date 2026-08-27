@@ -79,11 +79,37 @@ export interface CommunityMessage {
   createdAt: number;
 }
 
+/** A photo album. Groups gallery images so each tournament's photos stay
+ *  separate, and so the gallery index costs one read per album rather than
+ *  one per photo. */
+export interface Album {
+  id: string;
+  name: string;
+  description: string;
+  /** Optional link to a tournament. Null for standalone albums such as
+   *  practice sessions, trials, or socials. Mirrors matches.tournamentId. */
+  tournamentId: string | null;
+  /** Stored on the album so the grid needs no per-album photo query.
+   *  Cosmetic: goes stale if the cover photo is later deleted. */
+  coverImageURL: string | null;
+  /** Maintained with increment() rather than read-modify-write, so two
+   *  simultaneous uploads cannot lose a count. */
+  photoCount: number;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface GalleryImage {
   id: string;
   url: string;
   /** Caption shown under the photo. Empty string when untitled; absent entirely on images uploaded before captions existed. */
   title: string;
+  /** Owning album, or null for Uncategorised.
+   *  MUST always be written as an explicit null, never left absent:
+   *  Firestore equality filters do not match missing fields, so a photo
+   *  without this field would be invisible to the Uncategorised query. */
+  albumId: string | null;
   uploadedBy: string;
   featuredOnHome: boolean;
   createdAt: number;

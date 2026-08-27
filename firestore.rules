@@ -133,11 +133,30 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Photo albums. Public read like the gallery itself; only admins write.
+    // delete is deliberately its own clause -- see the note above /tournaments.
+    match /albums/{albumId} {
+      allow read: if true;
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 120
+                    && request.resource.data.photoCount is int
+                    && request.resource.data.photoCount >= 0;
+    }
+
     // Tournaments and matches are public like posts/gallery -- fixtures,
     // results, and the points table are meant to be shareable without a login.
+    // NOTE: delete is a SEPARATE clause on purpose. On a delete there is no
+    // incoming document, so request.resource is null and every
+    // request.resource.data.* check below evaluates false -- folding delete
+    // into the validating clause silently denies all deletes. That was a real
+    // shipped bug here; don't merge them back.
     match /tournaments/{tournamentId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin()
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
                     && request.resource.data.name is string
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() <= 120
@@ -157,7 +176,8 @@ service cloud.firestore {
     // defence-in-depth on the fields that would corrupt the points table.
     match /matches/{matchId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin()
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
                     && request.resource.data.teamA is string
                     && request.resource.data.teamA.size() > 0
                     && request.resource.data.teamA.size() <= 60
