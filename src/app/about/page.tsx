@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CLUB_NAME } from "@/lib/constants";
 import PageHeader from "@/components/ui/PageHeader";
 import AboutEditableSection from "@/components/about/AboutEditableSection";
+
+export const metadata: Metadata = {
+  title: "About the Club",
+  description: `${CLUB_NAME} is the official cricket club of Independent University, Bangladesh, operating under the Division of Student Activities. Training, fitness sessions, on-campus matches, and inter-university competition.`,
+  alternates: { canonical: "/about" },
+  openGraph: {
+    title: `About ${CLUB_NAME}`,
+    description: `The official cricket club of Independent University, Bangladesh — training, tournaments, and a full development pathway for cricketers of every level.`,
+    url: "/about",
+  },
+};
 
 export default function AboutPage() {
   return (

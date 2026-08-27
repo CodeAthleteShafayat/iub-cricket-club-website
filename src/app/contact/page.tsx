@@ -1,6 +1,18 @@
+import type { Metadata } from "next";
 import { Mail, MapPin, MessageCircle } from "lucide-react";
 import { CLUB_NAME } from "@/lib/constants";
 import PageHeader from "@/components/ui/PageHeader";
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description: `Get in touch with the ${CLUB_NAME} at Independent University, Bangladesh — email the club office, find us on campus, or reach out on social media.`,
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    title: `Contact ${CLUB_NAME}`,
+    description: `Get in touch with the ${CLUB_NAME} at Independent University, Bangladesh.`,
+    url: "/contact",
+  },
+};
 
 export default function ContactPage() {
   return (

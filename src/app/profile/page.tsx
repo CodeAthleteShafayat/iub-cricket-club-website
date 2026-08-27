@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import ApprovedGuard from "@/components/auth/ApprovedGuard";
 import ProfileForm from "@/components/members/ProfileForm";
+
+export const metadata: Metadata = {
+  title: "Your Profile",
+  robots: { index: false, follow: false },
+};
+
 
 export default function ProfilePage() {
   return (

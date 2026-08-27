@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ForgotPasswordForm from "@/components/members/ForgotPasswordForm";
+
+export const metadata: Metadata = {
+  title: "Reset Password",
+  robots: { index: false, follow: false },
+};
+
 
 export default function ForgotPasswordPage() {
   return (

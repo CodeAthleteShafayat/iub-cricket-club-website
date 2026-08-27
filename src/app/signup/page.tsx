@@ -1,4 +1,22 @@
+import type { Metadata } from "next";
 import SignupForm from "@/components/members/SignupForm";
+
+// Indexed on purpose, unlike the other auth screens: this is the club's
+// recruitment landing page, and "join IUB cricket club" is exactly the kind
+// of query it should answer.
+export const metadata: Metadata = {
+  title: "Join the Club",
+  description:
+    "Apply to join the IUB Cricket Club at Independent University, Bangladesh. Open to IUB students of every skill level — submit your application for admin review.",
+  alternates: { canonical: "/signup" },
+  openGraph: {
+    title: "Join the IUB Cricket Club",
+    description:
+      "Apply to join the IUB Cricket Club at Independent University, Bangladesh. Open to IUB students of every skill level.",
+    url: "/signup",
+  },
+};
+
 
 export default function SignupPage() {
   return (

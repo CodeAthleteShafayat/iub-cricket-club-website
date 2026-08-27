@@ -6,12 +6,23 @@ import { transformImage } from "@/lib/services/cloudinary";
 import type { Post } from "@/lib/types";
 import Spinner from "@/components/ui/Spinner";
 
-export default function PostDetail({ postId }: { postId: string }) {
-  const [post, setPost] = useState<Post | null | undefined>(undefined);
+export default function PostDetail({
+  postId,
+  initialPost,
+}: {
+  postId: string;
+  /** Server-fetched post, so the article text is present in the initial HTML
+   *  for crawlers. When supplied, the client fetch below is skipped entirely.
+   *  Undefined (not null) means "nothing was passed" -- null means the server
+   *  looked and the post genuinely doesn't exist. */
+  initialPost?: Post | null;
+}) {
+  const [post, setPost] = useState<Post | null | undefined>(initialPost);
 
   useEffect(() => {
+    if (initialPost !== undefined) return;
     getPost(postId).then(setPost);
-  }, [postId]);
+  }, [postId, initialPost]);
 
   if (post === undefined) return <Spinner />;
   if (post === null) {

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import LoginForm from "@/components/members/LoginForm";
+
+export const metadata: Metadata = {
+  title: "Log In",
+  robots: { index: false, follow: false },
+};
+
 
 export default function LoginPage() {
   return (
