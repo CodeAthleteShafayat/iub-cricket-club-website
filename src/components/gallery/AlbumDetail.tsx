@@ -17,8 +17,15 @@ import type { Album, GalleryImage, Tournament } from "@/lib/types";
 export default function AlbumDetail({ albumId }: { albumId: string }) {
   const router = useRouter();
   const { member } = useAuth();
+  // Loose photos now live inline on /gallery rather than behind their own
+  // page, so this legacy route just forwards there instead of rendering an
+  // "Uncategorised" album that no longer exists in the UI.
   const isUncategorised = albumId === UNCATEGORISED;
   const realAlbumId = isUncategorised ? null : albumId;
+
+  useEffect(() => {
+    if (isUncategorised) router.replace("/gallery");
+  }, [isUncategorised, router]);
 
   // undefined = loading, null = not found. Uncategorised has no document, so
   // it short-circuits to null without a lookup.
@@ -63,7 +70,7 @@ export default function AlbumDetail({ albumId }: { albumId: string }) {
     const count = images.length;
     const warning =
       count > 0
-        ? `Delete the album "${album.name}"?\n\nIts ${count} photo${count === 1 ? "" : "s"} will NOT be deleted. They move to Uncategorised so you can re-file them.`
+        ? `Delete the album "${album.name}"?\n\nIts ${count} photo${count === 1 ? "" : "s"} will NOT be deleted. They move back to the main gallery so you can re-file them.`
         : `Delete the empty album "${album.name}"?`;
     if (!confirm(warning)) return;
 
@@ -77,9 +84,10 @@ export default function AlbumDetail({ albumId }: { albumId: string }) {
     }
   }
 
+  if (isUncategorised) return <Spinner />;
   if (album === undefined) return <Spinner />;
 
-  if (!isUncategorised && album === null) {
+  if (album === null) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <p className="text-sm text-muted">Album not found.</p>
@@ -90,7 +98,7 @@ export default function AlbumDetail({ albumId }: { albumId: string }) {
     );
   }
 
-  const title = isUncategorised ? "Uncategorised" : album!.name;
+
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
@@ -104,22 +112,16 @@ export default function AlbumDetail({ albumId }: { albumId: string }) {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="font-heading text-2xl font-bold tracking-tight text-navy sm:text-3xl">
-            {title}
+            {album!.name}
           </h1>
           {tournamentName && (
             <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-navy/5 px-2.5 py-0.5 text-xs font-medium text-navy">
               <Trophy size={11} /> {tournamentName}
             </span>
           )}
-          {!isUncategorised && album!.description && (
+          {album!.description && (
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
               {album!.description}
-            </p>
-          )}
-          {isUncategorised && (
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
-              Photos that aren&apos;t in an album yet.
-              {member?.isAdmin && " Use the move button on a photo to file it."}
             </p>
           )}
           <p className="mt-2 text-xs text-muted">
@@ -127,7 +129,7 @@ export default function AlbumDetail({ albumId }: { albumId: string }) {
           </p>
         </div>
 
-        {member?.isAdmin && !isUncategorised && !editing && (
+        {member?.isAdmin && !editing && (
           <div className="flex shrink-0 gap-3 text-sm">
             <button
               onClick={() => setEditing(true)}

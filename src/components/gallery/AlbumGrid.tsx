@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Folder, Images, Trophy } from "lucide-react";
 import { transformImage } from "@/lib/services/cloudinary";
-import { UNCATEGORISED } from "@/lib/services/albums";
 import type { Album, Tournament } from "@/lib/types";
 
 function Tile({
@@ -59,12 +58,9 @@ function Tile({
 export default function AlbumGrid({
   albums,
   tournaments,
-  uncategorisedCount,
 }: {
   albums: Album[];
   tournaments: Tournament[];
-  /** Null while still unknown, so the tile doesn't flash "0 photos". */
-  uncategorisedCount: number | null;
 }) {
   const tournamentName = (id: string | null) =>
     id ? tournaments.find((t) => t.id === id)?.name : undefined;
@@ -81,17 +77,6 @@ export default function AlbumGrid({
           tournamentName={tournamentName(album.tournamentId ?? null)}
         />
       ))}
-
-      {/* Always shown when it has photos, so the pre-album uploads stay
-          reachable rather than silently disappearing behind the new grouping. */}
-      {(uncategorisedCount === null || uncategorisedCount > 0) && (
-        <Tile
-          href={`/gallery/${UNCATEGORISED}`}
-          name="Uncategorised"
-          count={uncategorisedCount}
-          coverImageURL={null}
-        />
-      )}
     </div>
   );
 }

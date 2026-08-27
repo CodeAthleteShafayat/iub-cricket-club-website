@@ -9,13 +9,18 @@ import { subscribeToTournaments } from "@/lib/services/tournaments";
 import PageHeader from "@/components/ui/PageHeader";
 import AlbumGrid from "@/components/gallery/AlbumGrid";
 import AlbumForm from "@/components/gallery/AlbumForm";
-import type { Album, Tournament } from "@/lib/types";
+import PhotoGrid from "@/components/gallery/PhotoGrid";
+import PhotoUploader from "@/components/gallery/PhotoUploader";
+import type { Album, GalleryImage, Tournament } from "@/lib/types";
 
 export default function GalleryPage() {
   const { member } = useAuth();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [uncategorisedCount, setUncategorisedCount] = useState<number | null>(null);
+  // Photos that aren't in an album. Shown inline underneath the albums rather
+  // than behind an "Uncategorised" tile, which read like a database state
+  // rather than part of a gallery.
+  const [looseImages, setLooseImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,55 +40,74 @@ export default function GalleryPage() {
 
   useEffect(() => subscribeToTournaments(setTournaments), []);
 
-  // Only to decide whether the Uncategorised tile is worth showing, and to
-  // label it. This is the one place the gallery index still reads photos, and
-  // it shrinks to zero once everything has been filed into an album.
   useEffect(
     () =>
-      subscribeToAlbumImages(
-        null,
-        (imgs) => setUncategorisedCount(imgs.length),
-        () => setUncategorisedCount(0)
+      subscribeToAlbumImages(null, setLooseImages, () =>
+        setError("Could not load photos. Please refresh in a moment.")
       ),
     []
   );
+
+  const isAdmin = !!member?.isAdmin;
+  const nothingYet = albums.length === 0 && looseImages.length === 0;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
       <PageHeader
         title="Gallery"
         description={
-          member?.isAdmin
-            ? "Photos grouped into albums. Create an album, then open it to add photos. Star a photo inside an album to feature it on the homepage."
+          isAdmin
+            ? "Photos grouped into albums. Create an album, then open it to add photos. Star a photo to feature it on the homepage."
             : "Photos from practices, matches, and tournaments."
         }
       />
 
-      {member?.isAdmin && !creating && (
+      {isAdmin && !creating && (
         <button onClick={() => setCreating(true)} className="btn-primary mb-6 w-full sm:w-fit">
           <Plus size={16} /> New album
         </button>
       )}
 
-      {member?.isAdmin && creating && (
+      {isAdmin && creating && (
         <div className="mb-6">
           <AlbumForm onDone={() => setCreating(false)} />
         </div>
       )}
 
-      {loading && <p className="text-sm text-muted">Loading albums...</p>}
+      {loading && <p className="text-sm text-muted">Loading gallery...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {!loading && !error && albums.length === 0 && uncategorisedCount === 0 && (
+      {!loading && !error && nothingYet && (
         <p className="text-sm text-muted">No photos yet.</p>
       )}
 
-      {!loading && !error && (
-        <AlbumGrid
-          albums={albums}
-          tournaments={tournaments}
-          uncategorisedCount={uncategorisedCount}
-        />
+      {!loading && !error && albums.length > 0 && (
+        <AlbumGrid albums={albums} tournaments={tournaments} />
+      )}
+
+      {/* Loose photos always sit below the albums, so the organised content
+          leads and these read as the rest of the gallery rather than as a
+          leftover bucket. */}
+      {!loading && !error && (looseImages.length > 0 || isAdmin) && (
+        <section className={albums.length > 0 ? "mt-12" : ""}>
+          {albums.length > 0 && looseImages.length > 0 && (
+            <h2 className="section-eyebrow mb-4">More photos</h2>
+          )}
+
+          {isAdmin && (
+            <div className="mb-5">
+              <PhotoUploader albumId={null} />
+              <p className="mt-1.5 text-xs text-muted">
+                Photos added here sit outside any album. To group them, open an
+                album and upload there, or use the move button on a photo.
+              </p>
+            </div>
+          )}
+
+          {looseImages.length > 0 && (
+            <PhotoGrid images={looseImages} albums={albums} currentAlbumId={null} />
+          )}
+        </section>
       )}
     </div>
   );

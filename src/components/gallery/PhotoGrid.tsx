@@ -43,7 +43,7 @@ export default function PhotoGrid({
     // captions are already edited here and avoids building a modal for an
     // occasional admin action.
     const targets: { id: string | null; label: string }[] = [
-      ...(currentAlbumId === null ? [] : [{ id: null, label: "Uncategorised" }]),
+      ...(currentAlbumId === null ? [] : [{ id: null, label: "No album (show in main gallery)" }]),
       ...albums
         .filter((a) => a.id !== currentAlbumId)
         .map((a) => ({ id: a.id as string | null, label: a.name })),
